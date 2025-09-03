@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="8dp"
-    tools:context=".MainActivity">
+    android:gravity="center_horizontal"
+    android:background="@android:color/white">
 
     <!-- Barre blanche de sécurité en bas -->
     <View
@@ -20,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:weightSum="2">
+        android:padding="4dp">
 
         <TextView
             android:id="@+id/scoreText"
@@ -41,17 +40,21 @@
             android:textColor="@android:color/black"/>
     </LinearLayout>
 
-    <!-- Grille Sudoku -->
-    <GridLayout
+    <com.mrlinfecter.sudoku.SquareGridLayout
         android:id="@+id/sudokuGrid"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:background="#000000"
         android:columnCount="9"
-        android:rowCount="9" />
+        android:rowCount="9"/>
 
-    <!-- Statut -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@android:color/white"/>
+
+
     <TextView
         android:id="@+id/statusText"
         android:layout_width="match_parent"
@@ -61,17 +64,10 @@
         android:textColor="@android:color/black"
         android:padding="4dp"/>
 
-    <!-- Palette des chiffres -->
     <LinearLayout
         android:id="@+id/palette"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:weightSum="9"/>
-
-    <!-- Barre blanche de sécurité en bas -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@android:color/white"/>
+        android:padding="4dp"/>
 </LinearLayout>

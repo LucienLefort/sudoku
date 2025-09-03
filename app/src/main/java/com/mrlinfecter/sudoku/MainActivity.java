@@ -47,7 +47,10 @@ public class MainActivity extends AppCompatActivity {
         puzzle = generator.generatePuzzle(solution, 35);
 
         grid.post(() -> {
-            int size = Math.min(grid.getWidth(), grid.getHeight());
+            int width = grid.getWidth();
+            int height = grid.getHeight();
+            int size = Math.min(width, height);
+
             ViewGroup.LayoutParams params = grid.getLayoutParams();
             params.width = size;
             params.height = size;
@@ -57,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
             buildPalette();
             startTimer();
         });
+
+
+
     }
 
     private void startTimer() {
