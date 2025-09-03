@@ -3,6 +3,7 @@ package com.mrlinfecter.sudoku;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -10,14 +11,13 @@ import android.os.CountDownTimer;
 import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,12 +38,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         grid = findViewById(R.id.sudokuGrid);
-        grid.post(() -> {
-            int size = Math.min(grid.getWidth(), grid.getHeight());
-            grid.getLayoutParams().width = size;
-            grid.getLayoutParams().height = size;
-            grid.requestLayout();
-        });
         palette = findViewById(R.id.palette);
         statusText = findViewById(R.id.statusText);
         scoreText = findViewById(R.id.scoreText);
@@ -53,9 +47,17 @@ public class MainActivity extends AppCompatActivity {
         solution = generator.generateSolution();
         puzzle = generator.generatePuzzle(solution, 35);
 
-        buildGrid();
-        buildPalette();
-        startTimer();
+        grid.post(() -> {
+            int size = Math.min(grid.getWidth(), grid.getHeight());
+            ViewGroup.LayoutParams params = grid.getLayoutParams();
+            params.width = size;
+            params.height = size;
+            grid.setLayoutParams(params);
+
+            buildGrid();
+            buildPalette();
+            startTimer();
+        });
     }
 
     private void startTimer() {
@@ -74,7 +76,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void buildGrid() {
         grid.removeAllViews();
-        int cellSize = getResources().getDisplayMetrics().widthPixels / 9 - dp(6);
+
+        int gridWidth = grid.getWidth();
+        if (gridWidth == 0) gridWidth = getResources().getDisplayMetrics().widthPixels;
+        int cellSize = gridWidth / 9;
 
         for (int r = 0; r < 9; r++) {
             for (int c = 0; c < 9; c++) {
@@ -82,16 +87,11 @@ public class MainActivity extends AppCompatActivity {
                 GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
                 lp.width = cellSize;
                 lp.height = cellSize;
-                lp.setMargins(dp(1), dp(1), dp(1), dp(1));
-                // keep row/col spec to have grid layout behave
-                lp.rowSpec = GridLayout.spec(r, 1f);
-                lp.columnSpec = GridLayout.spec(c, 1f);
                 tv.setLayoutParams(lp);
 
                 tv.setTextSize(20f);
                 tv.setTypeface(Typeface.DEFAULT_BOLD);
                 tv.setGravity(Gravity.CENTER);
-                tv.setBackground(cellBackground());
                 tv.setTag(new CellTag(r, c));
 
                 int value = puzzle[r][c];
@@ -105,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
                     tv.setOnDragListener(cellDragListener);
                 }
 
+                tv.setBackground(cellBackground(r, c, Color.WHITE));
                 grid.addView(tv);
             }
         }
@@ -129,13 +130,10 @@ public class MainActivity extends AppCompatActivity {
             tv.setBackgroundColor(Color.parseColor("#3F51B5"));
 
             final int number = n;
-            // make sure long clicks are recognized
             tv.setLongClickable(true);
             tv.setOnLongClickListener(v -> {
                 ClipData data = ClipData.newPlainText("number", String.valueOf(number));
-                // startDragAndDrop is API24+, Android 12 is fine
                 v.startDragAndDrop(data, new NumberDragShadowBuilder(v), null, 0);
-
                 return true;
             });
 
@@ -152,12 +150,11 @@ public class MainActivity extends AppCompatActivity {
 
             switch (event.getAction()) {
                 case DragEvent.ACTION_DRAG_STARTED:
-                    // accept only plain text drags
                     if (event.getClipDescription() != null &&
                             event.getClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
-                        return true; // accept and continue receiving events
+                        return true;
                     }
-                    return false; // reject drag
+                    return false;
                 case DragEvent.ACTION_DRAG_ENTERED:
                     tv.setAlpha(0.7f);
                     return true;
@@ -180,21 +177,21 @@ public class MainActivity extends AppCompatActivity {
                     if (number == correct) {
                         tv.setText(String.valueOf(number));
                         tv.setEnabled(false);
-                        tv.setBackgroundColor(Color.parseColor("#C8E6C9"));
+                        tv.setBackground(cellBackground(tag.r, tag.c, Color.parseColor("#C8E6C9")));
                         score += 10;
                         statusText.setText("✔ Correct !");
                         updateScore();
                         checkWin();
                     } else {
-                        tv.setBackgroundColor(Color.parseColor("#FFCDD2"));
-                        tv.postDelayed(() -> tv.setBackground(cellBackground()), 350);
+                        tv.setBackground(cellBackground(tag.r, tag.c, Color.parseColor("#FFCDD2")));
+                        tv.postDelayed(() ->
+                                tv.setBackground(cellBackground(tag.r, tag.c, Color.WHITE)), 350);
                         score = Math.max(0, score - 5);
                         Toast.makeText(MainActivity.this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
                         updateScore();
                     }
                     return true;
                 case DragEvent.ACTION_DRAG_ENDED:
-                    // reset visual state (if needed)
                     tv.setAlpha(1f);
                     return true;
                 default:
@@ -221,15 +218,30 @@ public class MainActivity extends AppCompatActivity {
         if (timer != null) timer.cancel();
     }
 
-    private GradientDrawable cellBackground() {
+    private GradientDrawable cellBackground(int r, int c, int fillColor) {
         GradientDrawable gd = new GradientDrawable();
-        gd.setColor(Color.WHITE);
-        gd.setStroke(1, Color.parseColor("#BDBDBD"));
+        gd.setColor(fillColor);
+
+        int thin = dp(1);
+        int thick = dp(3);
+
+        int left   = (c % 3 == 0) ? thick : thin;
+        int right  = ((c + 1) % 3 == 0) ? thick : thin;
+        int top    = (r % 3 == 0) ? thick : thin;
+        int bottom = ((r + 1) % 3 == 0) ? thick : thin;
+
+        gd.setStroke(thin, Color.parseColor("#BDBDBD"));
+        gd.setStroke(left, Color.BLACK);
+        gd.setStroke(right, Color.BLACK);
+        gd.setStroke(top, Color.BLACK);
+        gd.setStroke(bottom, Color.BLACK);
+
         return gd;
     }
 
     private int dp(int value) {
-        return (int) (value * getResources().getDisplayMetrics().density);
+        float d = getResources().getDisplayMetrics().density;
+        return Math.round(value * d);
     }
 
     static class CellTag {
@@ -242,7 +254,6 @@ public class MainActivity extends AppCompatActivity {
 
         public NumberDragShadowBuilder(View view) {
             super(view);
-            // On recrée un TextView pour le rendu de l'ombre
             TextView original = (TextView) view;
             shadowView = new TextView(view.getContext());
             shadowView.setText(original.getText());
@@ -250,11 +261,12 @@ public class MainActivity extends AppCompatActivity {
             shadowView.setTypeface(Typeface.DEFAULT_BOLD);
             shadowView.setTextColor(Color.BLACK);
             shadowView.setBackgroundColor(Color.WHITE);
-            shadowView.setPadding(20, 20, 20, 20);
+            int pad = Math.round(12 * view.getResources().getDisplayMetrics().density);
+            shadowView.setPadding(pad, pad, pad, pad);
         }
 
         @Override
-        public void onProvideShadowMetrics(android.graphics.Point size, android.graphics.Point touch) {
+        public void onProvideShadowMetrics(Point size, Point touch) {
             shadowView.measure(
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
@@ -262,8 +274,8 @@ public class MainActivity extends AppCompatActivity {
             int width = shadowView.getMeasuredWidth();
             int height = shadowView.getMeasuredHeight();
             size.set(width, height);
-            // 👉 Ici, le point "touch" est légèrement au-dessus du centre (juste sous le pouce)
-            touch.set(width / 2, height / 2);
+
+            touch.set(width / 2, height + dp(60)); // ombre juste au-dessus du doigt
         }
 
         @Override
@@ -271,7 +283,9 @@ public class MainActivity extends AppCompatActivity {
             shadowView.layout(0, 0, canvas.getWidth(), canvas.getHeight());
             shadowView.draw(canvas);
         }
+
+        private int dp(int value) {
+            return Math.round(value * shadowView.getResources().getDisplayMetrics().density);
+        }
     }
-
 }
-
