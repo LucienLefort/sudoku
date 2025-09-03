@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="8dp"
+    tools:context=".MainActivity">
+
+    <!-- Score et Timer -->
+    <LinearLayout
+        android:id="@+id/infoLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="2">
+
+        <TextView
+            android:id="@+id/scoreText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Score: 0"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"/>
+
+        <TextView
+            android:id="@+id/timerText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Temps: 00:00"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"/>
+    </LinearLayout>
+
+    <!-- Grille Sudoku -->
+    <GridLayout
+        android:id="@+id/sudokuGrid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:columnCount="9"
+        android:rowCount="9"
+        android:layout_gravity="center"
+        android:background="@android:color/darker_gray"
+        android:layout_margin="8dp"/>
+
+    <!-- Statut -->
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Place un chiffre !"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:padding="4dp"/>
+
+    <!-- Palette des chiffres -->
+    <LinearLayout
+        android:id="@+id/palette"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="9"/>
+
+    <!-- Barre blanche de sécurité en bas -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@android:color/white"/>
+</LinearLayout>
