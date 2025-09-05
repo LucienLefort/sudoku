@@ -167,11 +167,16 @@ public class MainActivity extends AppCompatActivity {
     private TextView lastHoverCell = null;
 
     private final View.OnDragListener globalGridDragListener = (v, event) -> {
-        float shadowOffsetY = dp(-50); // même offset que dans NumberDragShadowBuilder
+        float shadowOffsetY = dp(-25); //-50 même offset que dans NumberDragShadowBuilder
         float shadowOffsetX = dp(0);  // tu peux ajouter un offset horizontal si nécessaire
 
+        // On compense l'offset pour retrouver la vraie position dans la grille
         float x = event.getX() + shadowOffsetX;
         float y = event.getY() + shadowOffsetY;
+
+        // Clipper pour rester dans les bornes de la grille
+        x = Math.max(0, Math.min(x, grid.getWidth() - 1));
+        y = Math.max(0, Math.min(y, grid.getHeight() - 1));
 
         switch (event.getAction()) {
             case DragEvent.ACTION_DRAG_STARTED:
@@ -239,21 +244,32 @@ public class MainActivity extends AppCompatActivity {
         return true;
     };
 
+
     // Fonction utilitaire pour trouver la cellule sous des coordonnées x, y
-    private TextView findCellUnder(float x, float y) {
-        for (int i = 0; i < grid.getChildCount(); i++) {
-            TextView cell = (TextView) grid.getChildAt(i);
-            if (x >= cell.getLeft() && x <= cell.getRight()
-                    && y >= cell.getTop() && y <= cell.getBottom()) {
-                return cell;
+    private TextView findCellUnder(float x, float yFinger) {
+        // Limiter x dans la grille
+        x = Math.max(0, Math.min(x, grid.getWidth() - 1));
+
+        // Trouver la colonne correspondant à x
+        int col = 0;
+        for (int c = 0; c < 9; c++) {
+            TextView cell = (TextView) grid.getChildAt(c); // cast
+            if (x >= cell.getLeft() && x <= cell.getRight()) {
+                col = c;
+                break;
             }
         }
-        return null;
+
+        // Calculer la ligne selon la position réelle du doigt
+        float rowHeight = (float) grid.getHeight() / 9;
+        int row = (int)(yFinger / rowHeight);
+
+        // Accrocher première ou dernière ligne si hors de la grille
+        if (row < 0) row = 0;
+        if (row > 8) row = 8;
+
+        return (TextView) grid.getChildAt(row * 9 + col);
     }
-
-
-
-
 
 
     private void updateScore() {
@@ -357,13 +373,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-
     private void resetGame() {
         SudokuGenerator generator = new SudokuGenerator();
         solution = generator.generateSolution();
         puzzle = generator.generatePuzzle(solution, 35);
         score = 0;
+        seconds = 0;
         updateScore();
         statusText.setText("Place un chiffre !");
         buildGrid();
