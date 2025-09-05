@@ -4,7 +4,6 @@ import android.content.ClipData;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.view.DragEvent;
@@ -60,9 +59,6 @@ public class MainActivity extends AppCompatActivity {
             buildPalette();
             startTimer();
         });
-
-
-
     }
 
     private void startTimer() {
@@ -82,36 +78,27 @@ public class MainActivity extends AppCompatActivity {
 
     private void buildGrid() {
         grid.removeAllViews();
-
         int size = Math.min(grid.getWidth(), grid.getHeight());
+
         int thin = dp(1);
         int thick = dp(4);
 
-        // Total des "écarts" horizontaux : 3 lignes épaisses internes + bord gauche épais + 6 fines + bord droit épais
-        // => 4*thick + 6*thin (idem vertical)
-        int totalGapsH = 4 * thick + 6 * thin;
-        int totalGapsV = 4 * thick + 6 * thin;
+        int totalGaps = 4 * thick + 6 * thin;
+        int cellSize = (size - totalGaps) / 9;
 
-        // Taille exacte d'une cellule carrée en tenant compte des traits
-        int cellSize = (size - totalGapsH) / 9;
-
-        // Reste de pixels qu'on ajoute au dernier bord pour éviter tout rognage
-        int leftoverX = size - (cellSize * 9 + totalGapsH);
-        int leftoverY = size - (cellSize * 9 + totalGapsV);
+        int leftover = size - (cellSize * 9 + totalGaps);
 
         for (int r = 0; r < 9; r++) {
             for (int c = 0; c < 9; c++) {
                 TextView tv = new TextView(this);
                 GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
-
                 lp.width = cellSize;
                 lp.height = cellSize;
 
-                // Marges = "traits" visibles (la grille est noire derrière)
-                int left   = (c == 0 || c % 3 == 0) ? thick : thin;   // compte la ligne à gauche une seule fois
-                int top    = (r == 0 || r % 3 == 0) ? thick : thin;   // idem haut
-                int right  = (c == 8) ? (thick + leftoverX) : 0;      // bord droit externe + rattrapage
-                int bottom = (r == 8) ? (thick + leftoverY) : 0;      // bord bas externe + rattrapage
+                int left   = (c == 0 || c % 3 == 0) ? thick : thin;
+                int top    = (r == 0 || r % 3 == 0) ? thick : thin;
+                int right  = (c == 8) ? thick + leftover : 0;
+                int bottom = (r == 8) ? thick + leftover : 0;
 
                 lp.setMargins(left, top, right, bottom);
                 tv.setLayoutParams(lp);
@@ -119,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
                 tv.setTextSize(20f);
                 tv.setTypeface(Typeface.DEFAULT_BOLD);
                 tv.setGravity(Gravity.CENTER);
-                tv.setBackgroundColor(Color.WHITE); // les traits sont dans les marges, donc visibles
+                tv.setBackgroundColor(Color.WHITE);
                 tv.setTag(new CellTag(r, c));
 
                 int value = puzzle[r][c];
@@ -135,31 +122,6 @@ public class MainActivity extends AppCompatActivity {
                 grid.addView(tv);
             }
         }
-    }
-
-
-    private GradientDrawable cellBackground(int r, int c, int fillColor) {
-        GradientDrawable gd = new GradientDrawable();
-        gd.setColor(fillColor);
-
-        int thin = dp(1);
-        int thick = dp(3);
-
-        int left = (c % 3 == 0) ? thick : thin;
-        int top = (r % 3 == 0) ? thick : thin;
-        int right = ((c + 1) % 3 == 0) ? thick : thin;
-        int bottom = ((r + 1) % 3 == 0) ? thick : thin;
-
-        gd.setStroke(thin, Color.BLACK);
-        gd.setStroke(thick, Color.BLACK);
-
-        // Trick : GradientDrawable n’a pas de stroke séparé par côté,
-        // donc on utilise un inset drawable mais ici plus simple :
-        // on mettra un fond noir derrière le GridLayout dans XML,
-        // et on laisse des "marges" simulées par du blanc.
-        gd.setStroke(0, Color.TRANSPARENT);
-
-        return gd;
     }
 
     private void buildPalette() {
@@ -183,68 +145,61 @@ public class MainActivity extends AppCompatActivity {
             final int number = n;
             tv.setLongClickable(true);
             tv.setOnLongClickListener(v -> {
-                ClipData data = ClipData.newPlainText("number", String.valueOf(number));
-                v.startDragAndDrop(data, new NumberDragShadowBuilder(v), null, 0);
+                v.startDragAndDrop(ClipData.newPlainText("number", String.valueOf(number)),
+                        new NumberDragShadowBuilder(v), null, 0);
                 return true;
             });
 
             palette.addView(tv);
         }
 
-        // Drag listener global pour déposer sur la cellule sous le doigt
         grid.setOnDragListener(globalGridDragListener);
     }
 
-    private final View.OnDragListener globalGridDragListener = new View.OnDragListener() {
-        @Override
-        public boolean onDrag(View v, DragEvent event) {
-            switch (event.getAction()) {
-                case DragEvent.ACTION_DROP:
-                    if (event.getClipData() == null || event.getClipData().getItemCount() == 0) return false;
-                    CharSequence clip = event.getClipData().getItemAt(0).getText();
-                    if (clip == null) return false;
-                    int number;
-                    try {
-                        number = Integer.parseInt(clip.toString());
-                    } catch (NumberFormatException e) {
-                        return false;
-                    }
+    private final View.OnDragListener globalGridDragListener = (v, event) -> {
+        switch (event.getAction()) {
+            case DragEvent.ACTION_DROP:
+                if (event.getClipData() == null || event.getClipData().getItemCount() == 0) return false;
+                CharSequence clip = event.getClipData().getItemAt(0).getText();
+                if (clip == null) return false;
 
-                    float x = event.getX();
-                    float y = event.getY();
+                int number;
+                try {
+                    number = Integer.parseInt(clip.toString());
+                } catch (NumberFormatException e) { return false; }
 
-                    for (int i = 0; i < grid.getChildCount(); i++) {
-                        TextView cell = (TextView) grid.getChildAt(i);
-                        if (x >= cell.getLeft() && x <= cell.getRight()
-                                && y >= cell.getTop() && y <= cell.getBottom()
-                                && cell.isEnabled()) {
+                float x = event.getX();
+                float y = event.getY();
 
-                            CellTag tag = (CellTag) cell.getTag();
-                            int correct = solution[tag.r][tag.c];
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    TextView cell = (TextView) grid.getChildAt(i);
+                    if (x >= cell.getLeft() && x <= cell.getRight()
+                            && y >= cell.getTop() && y <= cell.getBottom()
+                            && cell.isEnabled()) {
 
-                            if (number == correct) {
-                                cell.setText(String.valueOf(number));
-                                cell.setEnabled(false);
-                                cell.setBackground(cellBackground(tag.r, tag.c, Color.parseColor("#C8E6C9")));
-                                score += 10;
-                                statusText.setText("✔ Correct !");
-                                updateScore();
-                                checkWin();
-                            } else {
-                                cell.setBackground(cellBackground(tag.r, tag.c, Color.parseColor("#FFCDD2")));
-                                cell.postDelayed(() ->
-                                        cell.setBackground(cellBackground(tag.r, tag.c, Color.WHITE)), 350);
-                                score = Math.max(0, score - 5);
-                                Toast.makeText(MainActivity.this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
-                                updateScore();
-                            }
-                            break;
+                        CellTag tag = (CellTag) cell.getTag();
+                        int correct = solution[tag.r][tag.c];
+
+                        if (number == correct) {
+                            cell.setText(String.valueOf(number));
+                            cell.setEnabled(false);
+                            score += 10;
+                            statusText.setText("✔ Correct !");
+                            updateScore();
+                            checkWin();
+                        } else {
+                            cell.setBackgroundColor(Color.parseColor("#FFCDD2"));
+                            cell.postDelayed(() -> cell.setBackgroundColor(Color.WHITE), 350);
+                            score = Math.max(0, score - 5);
+                            Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
+                            updateScore();
                         }
+                        break;
                     }
-                    return true;
-            }
-            return true;
+                }
+                return true;
         }
+        return true;
     };
 
     private void updateScore() {
@@ -260,9 +215,49 @@ public class MainActivity extends AppCompatActivity {
             int value = s.isEmpty() ? 0 : Integer.parseInt(s);
             if (value != expected) return;
         }
+
         statusText.setText("🎉 Sudoku terminé !");
         Toast.makeText(this, "Bravo ! Score: " + score, Toast.LENGTH_LONG).show();
         if (timer != null) timer.cancel();
+
+        startFallingNumbersEffect();
+
+        grid.postDelayed(this::resetGame, 2500);
+    }
+
+    private void startFallingNumbersEffect() {
+        int gridWidth = grid.getWidth();
+        int gridHeight = grid.getHeight();
+
+        for (int i = 0; i < 30; i++) {
+            TextView tv = new TextView(this);
+            int n = 1 + (int)(Math.random() * 9);
+            tv.setText(String.valueOf(n));
+            tv.setTextColor(Color.parseColor("#FF5722"));
+            tv.setTextSize(18f);
+            tv.setTypeface(Typeface.DEFAULT_BOLD);
+            tv.setX((float) (Math.random() * gridWidth));
+            tv.setY(-50f);
+
+            grid.addView(tv);
+
+            tv.animate()
+                    .translationY(gridHeight + 50f)
+                    .setDuration(2000 + (long)(Math.random() * 1000))
+                    .withEndAction(() -> grid.removeView(tv))
+                    .start();
+        }
+    }
+
+    private void resetGame() {
+        SudokuGenerator generator = new SudokuGenerator();
+        solution = generator.generateSolution();
+        puzzle = generator.generatePuzzle(solution, 35);
+        score = 0;
+        updateScore();
+        statusText.setText("Place un chiffre !");
+        buildGrid();
+        startTimer();
     }
 
     private int dp(int value) {
@@ -277,7 +272,6 @@ public class MainActivity extends AppCompatActivity {
 
     static class NumberDragShadowBuilder extends View.DragShadowBuilder {
         private final TextView shadowView;
-
         public NumberDragShadowBuilder(View view) {
             super(view);
             TextView original = (TextView) view;
@@ -290,27 +284,20 @@ public class MainActivity extends AppCompatActivity {
             int pad = Math.round(12 * view.getResources().getDisplayMetrics().density);
             shadowView.setPadding(pad, pad, pad, pad);
         }
-
         @Override
         public void onProvideShadowMetrics(Point size, Point touch) {
-            shadowView.measure(
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-            );
+            shadowView.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             int width = shadowView.getMeasuredWidth();
             int height = shadowView.getMeasuredHeight();
             size.set(width, height);
-
-            int offset = dp(100);
-            touch.set(width / 2, offset);
+            touch.set(width / 2, dp(100));
         }
-
         @Override
         public void onDrawShadow(android.graphics.Canvas canvas) {
             shadowView.layout(0, 0, canvas.getWidth(), canvas.getHeight());
             shadowView.draw(canvas);
         }
-
         private int dp(int value) {
             return Math.round(value * shadowView.getResources().getDisplayMetrics().density);
         }
