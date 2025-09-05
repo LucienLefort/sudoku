@@ -31,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
     private int score = 0;
     private CountDownTimer timer;
     private int seconds = 0;
+    private int bestScore = 0;
+    private int bestTime = Integer.MAX_VALUE; // secondes
+    private TextView recordText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
         testWinButton.setOnClickListener(v -> {
             checkWinAnimation(); // Force l'animation de victoire
         });
+
+        recordText = findViewById(R.id.recordText); // ajoute un TextView dans ton layout
+        loadRecord();
+        updateRecordText();
+
 
         grid = findViewById(R.id.sudokuGrid);
         palette = findViewById(R.id.palette);
@@ -286,6 +294,14 @@ public class MainActivity extends AppCompatActivity {
             if (value != expected) return;
         }
 
+        if (score > bestScore || (score == bestScore && seconds < bestTime)) {
+            bestScore = score;
+            bestTime = seconds;
+            saveRecord();
+            updateRecordText();
+            Toast.makeText(this, "🎖 Nouveau record !", Toast.LENGTH_LONG).show();
+        }
+
         statusText.setText("🎉 Sudoku terminé !");
         Toast.makeText(this, "Bravo ! Score: " + score, Toast.LENGTH_LONG).show();
         if (timer != null) timer.cancel();
@@ -301,6 +317,7 @@ public class MainActivity extends AppCompatActivity {
         // Message central
         TextView congrats = new TextView(this);
         congrats.setText("🎉 Félicitations ! 🎉");
+        congrats.setBackgroundColor(Color.parseColor("#FFF5C3"));
         congrats.setTextSize(32f);
         congrats.setTypeface(Typeface.DEFAULT_BOLD);
         congrats.setTextColor(Color.parseColor("#388E3C"));
@@ -436,5 +453,30 @@ public class MainActivity extends AppCompatActivity {
             return Math.round(value * shadowView.getResources().getDisplayMetrics().density);
         }
     }
+
+    private void loadRecord() {
+        var prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        bestScore = prefs.getInt("bestScore", 0);
+        bestTime = prefs.getInt("bestTime", Integer.MAX_VALUE);
+    }
+
+    private void saveRecord() {
+        var prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        var editor = prefs.edit();
+        editor.putInt("bestScore", bestScore);
+        editor.putInt("bestTime", bestTime);
+        editor.apply();
+    }
+
+    private void updateRecordText() {
+        if (bestTime == Integer.MAX_VALUE) {
+            recordText.setText("Record: --");
+        } else {
+            int mins = bestTime / 60;
+            int secs = bestTime % 60;
+            recordText.setText(String.format("Record: %d pts en %02d:%02d", bestScore, mins, secs));
+        }
+    }
+
 
 }
