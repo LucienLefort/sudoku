@@ -164,87 +164,96 @@ public class MainActivity extends AppCompatActivity {
         grid.setOnDragListener(globalGridDragListener);
     }
 
+    private TextView lastHoverCell = null;
+
     private final View.OnDragListener globalGridDragListener = (v, event) -> {
-        float x = event.getX();
-        float y = event.getY();
+        float shadowOffsetY = dp(-50); // même offset que dans NumberDragShadowBuilder
+        float shadowOffsetX = dp(0);  // tu peux ajouter un offset horizontal si nécessaire
+
+        float x = event.getX() + shadowOffsetX;
+        float y = event.getY() + shadowOffsetY;
 
         switch (event.getAction()) {
-            case DragEvent.ACTION_DRAG_LOCATION:
-                // On survole toutes les cellules pour le feedback
-                for (int i = 0; i < grid.getChildCount(); i++) {
-                    TextView cell = (TextView) grid.getChildAt(i);
-                    CellTag tag = (CellTag) cell.getTag();
+            case DragEvent.ACTION_DRAG_STARTED:
+                return true;
 
-                    if (cell.isEnabled()) {
-                        if (x >= cell.getLeft() && x <= cell.getRight()
-                                && y >= cell.getTop() && y <= cell.getBottom()) {
-                            // survol -> gris clair
-                            cell.setBackgroundColor(Color.parseColor("#EEEEEE"));
-                        } else {
-                            // remettre blanc si pas survolé
-                            cell.setBackgroundColor(Color.WHITE);
-                        }
-                    }
+            case DragEvent.ACTION_DRAG_LOCATION:
+                TextView hoverCell = findCellUnder(x, y);
+                if (hoverCell != null && hoverCell != lastHoverCell && hoverCell.isEnabled()) {
+                    if (lastHoverCell != null) lastHoverCell.setBackgroundColor(Color.WHITE);
+                    hoverCell.setBackgroundColor(Color.LTGRAY);
+                    lastHoverCell = hoverCell;
+                }
+                break;
+
+            case DragEvent.ACTION_DRAG_EXITED:
+                if (lastHoverCell != null) {
+                    lastHoverCell.setBackgroundColor(Color.WHITE);
+                    lastHoverCell = null;
                 }
                 break;
 
             case DragEvent.ACTION_DROP:
+                if (lastHoverCell != null) lastHoverCell.setBackgroundColor(Color.WHITE);
+
                 if (event.getClipData() == null || event.getClipData().getItemCount() == 0) return false;
                 CharSequence clip = event.getClipData().getItemAt(0).getText();
                 if (clip == null) return false;
 
                 int number;
-                try { number = Integer.parseInt(clip.toString()); }
-                catch (NumberFormatException e) { return false; }
+                try {
+                    number = Integer.parseInt(clip.toString());
+                } catch (NumberFormatException e) { return false; }
 
-                // trouver la cellule sur laquelle on lâche
-                for (int i = 0; i < grid.getChildCount(); i++) {
-                    TextView cell = (TextView) grid.getChildAt(i);
-                    if (x >= cell.getLeft() && x <= cell.getRight()
-                            && y >= cell.getTop() && y <= cell.getBottom()
-                            && cell.isEnabled()) {
+                TextView targetCell = findCellUnder(x, y);
+                if (targetCell != null && targetCell.isEnabled()) {
+                    CellTag tag = (CellTag) targetCell.getTag();
+                    int correct = solution[tag.r][tag.c];
 
-                        CellTag tag = (CellTag) cell.getTag();
-                        int correct = solution[tag.r][tag.c];
-
-                        if (number == correct) {
-                            cell.setText(String.valueOf(number));
-                            cell.setEnabled(false);
-                            cell.setBackgroundColor(Color.parseColor("#E8F5E9"));
-                            score += 10;
-                            statusText.setText("✔ Correct !");
-                            updateScore();
-                            checkWin();
-                        } else {
-                            cell.setBackgroundColor(Color.parseColor("#FFCDD2"));
-                            cell.postDelayed(() -> cell.setBackgroundColor(Color.WHITE), 350);
-                            score = Math.max(0, score - 5);
-                            Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
-                            updateScore();
-                        }
-                        break;
+                    if (number == correct) {
+                        targetCell.setText(String.valueOf(number));
+                        targetCell.setEnabled(false);
+                        targetCell.setBackgroundColor(Color.parseColor("#E8F5E9"));
+                        score += 10;
+                        statusText.setText("✔ Correct !");
+                        updateScore();
+                        checkWin();
+                    } else {
+                        targetCell.setBackgroundColor(Color.parseColor("#FFCDD2"));
+                        targetCell.postDelayed(() -> targetCell.setBackgroundColor(Color.WHITE), 350);
+                        score = Math.max(0, score - 5);
+                        Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
+                        updateScore();
                     }
                 }
-
-                // remettre toutes les cellules à blanc après le drop
-                for (int i = 0; i < grid.getChildCount(); i++) {
-                    TextView cell = (TextView) grid.getChildAt(i);
-                    if (cell.isEnabled()) cell.setBackgroundColor(Color.WHITE);
-                }
-
-                return true;
+                lastHoverCell = null;
+                break;
 
             case DragEvent.ACTION_DRAG_ENDED:
-            case DragEvent.ACTION_DRAG_EXITED:
-                // remettre toutes les cellules à blanc
-                for (int i = 0; i < grid.getChildCount(); i++) {
-                    TextView cell = (TextView) grid.getChildAt(i);
-                    if (cell.isEnabled()) cell.setBackgroundColor(Color.WHITE);
+                if (lastHoverCell != null) {
+                    lastHoverCell.setBackgroundColor(Color.WHITE);
+                    lastHoverCell = null;
                 }
                 break;
         }
         return true;
     };
+
+    // Fonction utilitaire pour trouver la cellule sous des coordonnées x, y
+    private TextView findCellUnder(float x, float y) {
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            TextView cell = (TextView) grid.getChildAt(i);
+            if (x >= cell.getLeft() && x <= cell.getRight()
+                    && y >= cell.getTop() && y <= cell.getBottom()) {
+                return cell;
+            }
+        }
+        return null;
+    }
+
+
+
+
 
 
     private void updateScore() {
@@ -350,31 +359,6 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
-    private void startFallingNumbersEffect() {
-        int gridWidth = grid.getWidth();
-        int gridHeight = grid.getHeight();
-
-        for (int i = 0; i < 30; i++) {
-            TextView tv = new TextView(this);
-            int n = 1 + (int)(Math.random() * 9);
-            tv.setText(String.valueOf(n));
-            tv.setTextColor(Color.parseColor("#FF5722"));
-            tv.setTextSize(18f);
-            tv.setTypeface(Typeface.DEFAULT_BOLD);
-            tv.setX((float) (Math.random() * gridWidth));
-            tv.setY(-50f);
-
-            grid.addView(tv);
-
-            tv.animate()
-                    .translationY(gridHeight + 50f)
-                    .setDuration(2000 + (long)(Math.random() * 1000))
-                    .withEndAction(() -> grid.removeView(tv))
-                    .start();
-        }
-    }
-
     private void resetGame() {
         SudokuGenerator generator = new SudokuGenerator();
         solution = generator.generateSolution();
@@ -398,6 +382,7 @@ public class MainActivity extends AppCompatActivity {
 
     static class NumberDragShadowBuilder extends View.DragShadowBuilder {
         private final TextView shadowView;
+
         public NumberDragShadowBuilder(View view) {
             super(view);
             TextView original = (TextView) view;
@@ -410,22 +395,31 @@ public class MainActivity extends AppCompatActivity {
             int pad = Math.round(12 * view.getResources().getDisplayMetrics().density);
             shadowView.setPadding(pad, pad, pad, pad);
         }
+
         @Override
         public void onProvideShadowMetrics(Point size, Point touch) {
-            shadowView.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            shadowView.measure(
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            );
             int width = shadowView.getMeasuredWidth();
             int height = shadowView.getMeasuredHeight();
             size.set(width, height);
-            touch.set(width / 2, dp(100));
+
+            // Décalage : le chiffre est au-dessus du doigt
+            int offsetY = height + dp(20);
+            touch.set(width / 2, offsetY);
         }
+
         @Override
         public void onDrawShadow(android.graphics.Canvas canvas) {
             shadowView.layout(0, 0, canvas.getWidth(), canvas.getHeight());
             shadowView.draw(canvas);
         }
+
         private int dp(int value) {
             return Math.round(value * shadowView.getResources().getDisplayMetrics().density);
         }
     }
+
 }
