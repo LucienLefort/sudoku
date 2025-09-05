@@ -229,9 +229,9 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "Bravo ! Score: " + score, Toast.LENGTH_LONG).show();
         if (timer != null) timer.cancel();
 
-        startFallingNumbersEffect();
+        checkWinAnimation();
 
-        grid.postDelayed(this::resetGame, 2500);
+        //grid.postDelayed(this::resetGame, 2500);
     }
 
     private void checkWinAnimation() {
@@ -272,29 +272,45 @@ public class MainActivity extends AppCompatActivity {
             ));
 
             // Position aléatoire en X
-            tv.setX((float)(Math.random() * (screenW - 50)));
+            float startX = (float)(Math.random() * (screenW - 50));
+            tv.setX(startX);
             tv.setY(-50f - (float)(Math.random() * 200)); // départ au-dessus de l'écran
 
             root.addView(tv);
 
-            // Durée et rotation
+            // Durée, rotation et décalage final
             long duration = 2000 + (long)(Math.random() * 1500);
             float rotation = (float)(Math.random()*720 - 360);
+            float endX = startX + (float)(Math.random()*200 - 100); // décalage horizontal
+            float endY = screenH - 50f;
 
             tv.animate()
-                    .translationY(screenH + 50f)
+                    .translationX(endX)
+                    .translationY(endY)
                     .rotation(rotation)
                     .setDuration(duration)
-                    .withEndAction(() -> root.removeView(tv))
+                    .withEndAction(() -> {
+                        // petit rebond
+                        tv.animate()
+                                .translationY(endY - dp(20))
+                                .setDuration(150)
+                                .withEndAction(() -> tv.animate()
+                                        .translationY(endY)
+                                        .setDuration(150)
+                                        .withEndAction(() -> root.removeView(tv))
+                                        .start()
+                                ).start();
+                    })
                     .start();
         }
 
-        // Retirer le message et reset le jeu
+        // Retirer le message central et reset le jeu
         root.postDelayed(() -> {
             root.removeView(congrats);
             resetGame();
         }, 4000);
     }
+
 
 
 
