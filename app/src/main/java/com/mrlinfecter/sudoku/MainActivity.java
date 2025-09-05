@@ -1,6 +1,7 @@
 package com.mrlinfecter.sudoku;
 
 import android.content.ClipData;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.Typeface;
@@ -34,33 +35,39 @@ public class MainActivity extends AppCompatActivity {
     private int bestScore = 0;
     private int bestTime = Integer.MAX_VALUE; // secondes
     private TextView recordText;
+    private boolean darkMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
 
-        Button testWinButton = findViewById(R.id.testWinButton);
-        testWinButton.setOnClickListener(v -> {
-            checkWinAnimation(); // Force l'animation de victoire
-        });
-
-        recordText = findViewById(R.id.recordText); // ajoute un TextView dans ton layout
-        loadRecord();
-        updateRecordText();
-
-
+        // === Init des vues d'abord ===
         grid = findViewById(R.id.sudokuGrid);
         palette = findViewById(R.id.palette);
         statusText = findViewById(R.id.statusText);
         scoreText = findViewById(R.id.scoreText);
         timerText = findViewById(R.id.timerText);
+        recordText = findViewById(R.id.recordText);
 
+        Button testWinButton = findViewById(R.id.testWinButton);
+        testWinButton.setOnClickListener(v -> checkWinAnimation());
+
+        // === Record ===
+        loadRecord();
+        updateRecordText();
+
+        // === Détection du thème ===
+        int nightModeFlags = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        darkMode = (nightModeFlags == Configuration.UI_MODE_NIGHT_YES);
+
+
+        // === Sudoku ===
         SudokuGenerator generator = new SudokuGenerator();
         solution = generator.generateSolution();
         puzzle = generator.generatePuzzle(solution, 35);
 
+        // Construction de la grille après mesure
         grid.post(() -> {
             int width = grid.getWidth();
             int height = grid.getHeight();
@@ -73,8 +80,23 @@ public class MainActivity extends AppCompatActivity {
 
             buildGrid();
             buildPalette();
+            applyTheme();
             startTimer();
         });
+    }
+
+
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        if ((newConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
+            darkMode = true;
+        } else {
+            darkMode = false;
+        }
+        applyTheme();
     }
 
     private void startTimer() {
@@ -122,13 +144,13 @@ public class MainActivity extends AppCompatActivity {
                 tv.setTextSize(20f);
                 tv.setTypeface(Typeface.DEFAULT_BOLD);
                 tv.setGravity(Gravity.CENTER);
-                tv.setBackgroundColor(Color.WHITE);
+                //tv.setBackgroundColor(bgSquareGridLayout);
                 tv.setTag(new CellTag(r, c));
 
                 int value = puzzle[r][c];
                 if (value != 0) {
                     tv.setText(String.valueOf(value));
-                    tv.setTextColor(Color.BLACK);
+                    //tv.setTextColor(Color.BLACK);
                     tv.setEnabled(false);
                 } else {
                     tv.setText("");
@@ -155,9 +177,6 @@ public class MainActivity extends AppCompatActivity {
             tv.setTypeface(Typeface.DEFAULT_BOLD);
             int pad = dp(12);
             tv.setPadding(pad, pad, pad, pad);
-
-            // Style neutre clair
-            tv.setTextColor(Color.BLACK);
             tv.setBackgroundResource(R.drawable.bg_palette_number);
 
             final int number = n;
@@ -171,14 +190,20 @@ public class MainActivity extends AppCompatActivity {
             palette.addView(tv);
         }
 
+        // s'assurer que le listener de la grille est (ré)attaché
         grid.setOnDragListener(globalGridDragListener);
     }
+
 
 
 
     private TextView lastHoverCell = null;
 
     private final View.OnDragListener globalGridDragListener = (v, event) -> {
+        final int bgCell = getColor(R.color.bg_cell_empty);
+        final int bgCellGood = getColor(R.color.bg_cell_good);
+        final int bgCellNotGood = getColor(R.color.bg_cell_not_good);
+
         float shadowOffsetY = dp(-25); //-50 même offset que dans NumberDragShadowBuilder
         float shadowOffsetX = dp(0);  // tu peux ajouter un offset horizontal si nécessaire
 
@@ -197,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
             case DragEvent.ACTION_DRAG_LOCATION:
                 TextView hoverCell = findCellUnder(x, y);
                 if (hoverCell != null && hoverCell != lastHoverCell && hoverCell.isEnabled()) {
-                    if (lastHoverCell != null) lastHoverCell.setBackgroundColor(Color.WHITE);
+                    if (lastHoverCell != null) lastHoverCell.setBackgroundColor(bgCell);
                     hoverCell.setBackgroundColor(Color.LTGRAY);
                     lastHoverCell = hoverCell;
                 }
@@ -205,13 +230,13 @@ public class MainActivity extends AppCompatActivity {
 
             case DragEvent.ACTION_DRAG_EXITED:
                 if (lastHoverCell != null) {
-                    lastHoverCell.setBackgroundColor(Color.WHITE);
+                    lastHoverCell.setBackgroundColor(bgCell);
                     lastHoverCell = null;
                 }
                 break;
 
             case DragEvent.ACTION_DROP:
-                if (lastHoverCell != null) lastHoverCell.setBackgroundColor(Color.WHITE);
+                if (lastHoverCell != null) lastHoverCell.setBackgroundColor(bgCell);
 
                 if (event.getClipData() == null || event.getClipData().getItemCount() == 0) return false;
                 CharSequence clip = event.getClipData().getItemAt(0).getText();
@@ -230,14 +255,14 @@ public class MainActivity extends AppCompatActivity {
                     if (number == correct) {
                         targetCell.setText(String.valueOf(number));
                         targetCell.setEnabled(false);
-                        targetCell.setBackgroundColor(Color.parseColor("#E8F5E9"));
+                        targetCell.setBackgroundColor(bgCellGood);
                         score += 10;
                         statusText.setText("✔ Correct !");
                         updateScore();
                         checkWin();
                     } else {
-                        targetCell.setBackgroundColor(Color.parseColor("#FFCDD2"));
-                        targetCell.postDelayed(() -> targetCell.setBackgroundColor(Color.WHITE), 350);
+                        targetCell.setBackgroundColor(bgCellNotGood);
+                        targetCell.postDelayed(() -> targetCell.setBackgroundColor(bgCell), 350);
                         score = Math.max(0, score - 5);
                         Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
                         updateScore();
@@ -248,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
 
             case DragEvent.ACTION_DRAG_ENDED:
                 if (lastHoverCell != null) {
-                    lastHoverCell.setBackgroundColor(Color.WHITE);
+                    lastHoverCell.setBackgroundColor(bgCell);
                     lastHoverCell = null;
                 }
                 break;
@@ -318,13 +343,16 @@ public class MainActivity extends AppCompatActivity {
     private void checkWinAnimation() {
         ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
 
+        int bg_end = getColor(R.color.bg_end);
+        int text_color_end = getColor(R.color.text_end);
+
         // Message central
         TextView congrats = new TextView(this);
         congrats.setText("🎉 Félicitations ! 🎉");
-        congrats.setBackgroundColor(Color.parseColor("#FFF5C3"));
+        congrats.setBackgroundColor(bg_end);
         congrats.setTextSize(32f);
         congrats.setTypeface(Typeface.DEFAULT_BOLD);
-        congrats.setTextColor(Color.parseColor("#388E3C"));
+        congrats.setTextColor(text_color_end);
         congrats.setGravity(Gravity.CENTER);
         FrameLayout.LayoutParams msgParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -403,6 +431,7 @@ public class MainActivity extends AppCompatActivity {
         updateScore();
         statusText.setText("Place un chiffre !");
         buildGrid();
+        applyTheme();
         startTimer();
     }
 
@@ -481,6 +510,42 @@ public class MainActivity extends AppCompatActivity {
             recordText.setText(String.format("Record: %d pts en %02d:%02d", bestScore, mins, secs));
         }
     }
+    private void applyTheme() {
+        int bgPrimary = getColor(R.color.bg_primary);
+        int bgGrid = getColor(R.color.bg_grid);
+        int bgCell = getColor(R.color.bg_cell_empty);
+        int bgPalette = getColor(R.color.bg_palette);
+        int textPrimary = getColor(R.color.text_primary);
+        int textPalette = getColor(R.color.text_palette);
+        int textRecord = getColor(R.color.text_record);
+
+        // Fond général
+        grid.setBackgroundColor(bgGrid);
+        statusText.setTextColor(textPrimary);
+        scoreText.setTextColor(textPrimary);
+        timerText.setTextColor(textPrimary);
+        recordText.setTextColor(textRecord);
+
+        // Cases de la grille
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View child = grid.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tv = (TextView) child;
+                tv.setBackgroundColor(bgCell);
+                tv.setTextColor(textPrimary);
+            }
+        }
+
+        // Palette
+        for (int i = 0; i < palette.getChildCount(); i++) {
+            TextView tv = (TextView) palette.getChildAt(i);
+            tv.setBackgroundResource(R.drawable.bg_palette_number);
+            tv.setTextColor(textPalette);
+        }
+    }
+
+
+
 
 
 }

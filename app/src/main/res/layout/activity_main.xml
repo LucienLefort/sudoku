@@ -1,36 +1,38 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="8dp"
     android:gravity="center_horizontal"
-    android:background="@android:color/white">
+    android:background="@color/bg_primary">
 
-    <!-- Barre blanche de sécurité en bas -->
+    <!-- Barre de sécurité en bas -->
     <View
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:background="@android:color/white"/>
+        android:background="@color/bg_secondary"/>
 
-    <!-- TEST A SUPPR -->
+    <!-- Bouton test -->
     <Button
         android:id="@+id/testWinButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Tester la victoire"
         android:textSize="18sp"
-        android:background="@android:color/holo_green_dark"
-        android:textColor="@android:color/white"
+        android:background="@color/button_bg"
+        android:textColor="@color/button_text"
         android:layout_marginTop="8dp"/>
 
+    <!-- Record -->
     <TextView
         android:id="@+id/recordText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Record: --"
         android:textSize="18sp"
-        android:textColor="#FF9800"
+        android:textColor="@color/text_accent"
         android:layout_gravity="center_horizontal"
         android:padding="8dp"/>
 
@@ -49,7 +51,7 @@
             android:layout_weight="1"
             android:text="Score: 0"
             android:textSize="18sp"
-            android:textColor="@android:color/black"/>
+            android:textColor="@color/text_primary"/>
 
         <TextView
             android:id="@+id/timerText"
@@ -58,33 +60,36 @@
             android:layout_weight="1"
             android:text="Temps: 00:00"
             android:textSize="18sp"
-            android:textColor="@android:color/black"/>
+            android:textColor="@color/text_primary"/>
     </LinearLayout>
 
+    <!-- Sudoku -->
     <com.mrlinfecter.sudoku.SquareGridLayout
         android:id="@+id/sudokuGrid"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#000000"
+        android:background="@color/grid_bg"
         android:columnCount="9"
         android:rowCount="9"/>
 
+    <!-- Barre de sécurité en bas -->
     <View
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:background="@android:color/white"/>
+        android:background="@color/bg_primary"/>
 
-
+    <!-- Status -->
     <TextView
         android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Place un chiffre !"
         android:textSize="16sp"
-        android:textColor="@android:color/black"
+        android:textColor="@color/text_primary"
         android:padding="4dp"/>
 
+    <!-- Palette -->
     <LinearLayout
         android:id="@+id/palette"
         android:layout_width="match_parent"
