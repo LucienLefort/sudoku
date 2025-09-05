@@ -165,20 +165,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private final View.OnDragListener globalGridDragListener = (v, event) -> {
+        float x = event.getX();
+        float y = event.getY();
+
         switch (event.getAction()) {
+            case DragEvent.ACTION_DRAG_LOCATION:
+                // On survole toutes les cellules pour le feedback
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    TextView cell = (TextView) grid.getChildAt(i);
+                    CellTag tag = (CellTag) cell.getTag();
+
+                    if (cell.isEnabled()) {
+                        if (x >= cell.getLeft() && x <= cell.getRight()
+                                && y >= cell.getTop() && y <= cell.getBottom()) {
+                            // survol -> gris clair
+                            cell.setBackgroundColor(Color.parseColor("#EEEEEE"));
+                        } else {
+                            // remettre blanc si pas survolé
+                            cell.setBackgroundColor(Color.WHITE);
+                        }
+                    }
+                }
+                break;
+
             case DragEvent.ACTION_DROP:
                 if (event.getClipData() == null || event.getClipData().getItemCount() == 0) return false;
                 CharSequence clip = event.getClipData().getItemAt(0).getText();
                 if (clip == null) return false;
 
                 int number;
-                try {
-                    number = Integer.parseInt(clip.toString());
-                } catch (NumberFormatException e) { return false; }
+                try { number = Integer.parseInt(clip.toString()); }
+                catch (NumberFormatException e) { return false; }
 
-                float x = event.getX();
-                float y = event.getY();
-
+                // trouver la cellule sur laquelle on lâche
                 for (int i = 0; i < grid.getChildCount(); i++) {
                     TextView cell = (TextView) grid.getChildAt(i);
                     if (x >= cell.getLeft() && x <= cell.getRight()
@@ -191,8 +210,8 @@ public class MainActivity extends AppCompatActivity {
                         if (number == correct) {
                             cell.setText(String.valueOf(number));
                             cell.setEnabled(false);
-                            score += 10;
                             cell.setBackgroundColor(Color.parseColor("#E8F5E9"));
+                            score += 10;
                             statusText.setText("✔ Correct !");
                             updateScore();
                             checkWin();
@@ -206,10 +225,27 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     }
                 }
+
+                // remettre toutes les cellules à blanc après le drop
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    TextView cell = (TextView) grid.getChildAt(i);
+                    if (cell.isEnabled()) cell.setBackgroundColor(Color.WHITE);
+                }
+
                 return true;
+
+            case DragEvent.ACTION_DRAG_ENDED:
+            case DragEvent.ACTION_DRAG_EXITED:
+                // remettre toutes les cellules à blanc
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    TextView cell = (TextView) grid.getChildAt(i);
+                    if (cell.isEnabled()) cell.setBackgroundColor(Color.WHITE);
+                }
+                break;
         }
         return true;
     };
+
 
     private void updateScore() {
         scoreText.setText("Score: " + score);
