@@ -184,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
                             cell.setText(String.valueOf(number));
                             cell.setEnabled(false);
                             score += 10;
+                            cell.setBackgroundColor(Color.parseColor("#E8F5E9"));
                             statusText.setText("✔ Correct !");
                             updateScore();
                             checkWin();
