@@ -153,10 +153,12 @@ public class MainActivity extends AppCompatActivity {
             tv.setGravity(Gravity.CENTER);
             tv.setTextSize(20f);
             tv.setTypeface(Typeface.DEFAULT_BOLD);
-            int pad = dp(10);
+            int pad = dp(12);
             tv.setPadding(pad, pad, pad, pad);
-            tv.setTextColor(Color.WHITE);
-            tv.setBackgroundColor(Color.parseColor("#3F51B5"));
+
+            // Style neutre clair
+            tv.setTextColor(Color.BLACK);
+            tv.setBackgroundResource(R.drawable.bg_palette_number);
 
             final int number = n;
             tv.setLongClickable(true);
@@ -171,6 +173,8 @@ public class MainActivity extends AppCompatActivity {
 
         grid.setOnDragListener(globalGridDragListener);
     }
+
+
 
     private TextView lastHoverCell = null;
 
