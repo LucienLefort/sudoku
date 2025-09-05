@@ -10,6 +10,8 @@ import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -33,7 +35,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+
+        Button testWinButton = findViewById(R.id.testWinButton);
+        testWinButton.setOnClickListener(v -> {
+            checkWinAnimation(); // Force l'animation de victoire
+        });
 
         grid = findViewById(R.id.sudokuGrid);
         palette = findViewById(R.id.palette);
@@ -225,6 +233,71 @@ public class MainActivity extends AppCompatActivity {
 
         grid.postDelayed(this::resetGame, 2500);
     }
+
+    private void checkWinAnimation() {
+        ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
+
+        // Message central
+        TextView congrats = new TextView(this);
+        congrats.setText("🎉 Félicitations ! 🎉");
+        congrats.setTextSize(32f);
+        congrats.setTypeface(Typeface.DEFAULT_BOLD);
+        congrats.setTextColor(Color.parseColor("#388E3C"));
+        congrats.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams msgParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        );
+        congrats.setLayoutParams(msgParams);
+        root.addView(congrats);
+
+        int screenW = root.getWidth();
+        int screenH = root.getHeight();
+
+        for (int i = 0; i < 60; i++) {
+            TextView tv = new TextView(this);
+            int n = 1 + (int)(Math.random() * 9);
+            tv.setText(String.valueOf(n));
+
+            // Taille aléatoire
+            float size = 18 + (float)(Math.random() * 14);
+            tv.setTextSize(size);
+            tv.setTypeface(Typeface.DEFAULT_BOLD);
+
+            // Couleur aléatoire
+            tv.setTextColor(Color.rgb(
+                    100 + (int)(Math.random()*155),
+                    100 + (int)(Math.random()*155),
+                    100 + (int)(Math.random()*155)
+            ));
+
+            // Position aléatoire en X
+            tv.setX((float)(Math.random() * (screenW - 50)));
+            tv.setY(-50f - (float)(Math.random() * 200)); // départ au-dessus de l'écran
+
+            root.addView(tv);
+
+            // Durée et rotation
+            long duration = 2000 + (long)(Math.random() * 1500);
+            float rotation = (float)(Math.random()*720 - 360);
+
+            tv.animate()
+                    .translationY(screenH + 50f)
+                    .rotation(rotation)
+                    .setDuration(duration)
+                    .withEndAction(() -> root.removeView(tv))
+                    .start();
+        }
+
+        // Retirer le message et reset le jeu
+        root.postDelayed(() -> {
+            root.removeView(congrats);
+            resetGame();
+        }, 4000);
+    }
+
+
+
 
     private void startFallingNumbersEffect() {
         int gridWidth = grid.getWidth();

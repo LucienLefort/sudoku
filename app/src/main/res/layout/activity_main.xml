@@ -13,6 +13,18 @@
         android:layout_height="48dp"
         android:background="@android:color/white"/>
 
+    <!-- TEST A SUPPR -->
+    <Button
+        android:id="@+id/testWinButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tester la victoire"
+        android:textSize="18sp"
+        android:background="@android:color/holo_green_dark"
+        android:textColor="@android:color/white"
+        android:layout_marginTop="8dp"/>
+
+
     <!-- Score et Timer -->
     <LinearLayout
         android:id="@+id/infoLayout"
