@@ -535,7 +535,7 @@ public class MainActivity extends AppCompatActivity {
             shadowView.setTextSize(28f);
             shadowView.setTypeface(Typeface.DEFAULT_BOLD);
             shadowView.setTextColor(Color.BLACK);
-            shadowView.setBackgroundColor(Color.WHITE);
+            shadowView.setBackgroundResource(R.drawable.bg_drag_shadow);
             int pad = Math.round(12 * view.getResources().getDisplayMetrics().density);
             shadowView.setPadding(pad, pad, pad, pad);
         }
