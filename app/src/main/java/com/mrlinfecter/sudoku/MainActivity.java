@@ -37,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView recordText;
     private boolean darkMode = false;
 
+    private int highlightedNumber = -1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,23 +146,84 @@ public class MainActivity extends AppCompatActivity {
                 tv.setTextSize(20f);
                 tv.setTypeface(Typeface.DEFAULT_BOLD);
                 tv.setGravity(Gravity.CENTER);
-                //tv.setBackgroundColor(bgSquareGridLayout);
-                tv.setTag(new CellTag(r, c));
 
                 int value = puzzle[r][c];
-                if (value != 0) {
+                boolean isFixed = value != 0;
+
+                if (isFixed) {
                     tv.setText(String.valueOf(value));
-                    //tv.setTextColor(Color.BLACK);
-                    tv.setEnabled(false);
+                    // couleur cellule fixe (peut être overridée par applyTheme)
+                    tv.setTextColor(getColorOrFallback(R.color.text_primary, android.R.color.black));
                 } else {
                     tv.setText("");
                     tv.setTextColor(Color.DKGRAY);
                 }
 
+                // IMPORTANT : ne pas désactiver la vue -> on veut recevoir les clics
+                tv.setEnabled(true);
+                tv.setClickable(true);
+
+                // tag contient maintenant l'info si la case est fixe
+                tv.setTag(new CellTag(r, c, isFixed));
+
+                // click : bascule du surlignage
+                final TextView tvRef = tv;
+                tv.setOnClickListener(v -> {
+                    String text = tvRef.getText().toString();
+                    if (text.isEmpty()) {
+                        highlightedNumber = -1;
+                    } else {
+                        int num = Integer.parseInt(text);
+                        highlightedNumber = (highlightedNumber == num) ? -1 : num;
+                    }
+                    highlightNumbers();
+                });
+
                 grid.addView(tv);
             }
         }
+
+        // reset du surlignage (au cas où)
+        highlightNumbers();
     }
+
+
+    private void highlightNumbers() {
+        int normalColor;
+        try {
+            normalColor = getColor(R.color.text_primary);
+        } catch (Exception e) {
+            normalColor = Color.BLACK;
+        }
+        int highlightColor = getColor(R.color.text_record);
+
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View child = grid.getChildAt(i);
+            if (!(child instanceof TextView)) continue;
+            TextView tv = (TextView) child;
+            String s = tv.getText().toString();
+            if (!s.isEmpty()) {
+
+                int num = Integer.parseInt(s);
+                if (highlightedNumber != -1 && num == highlightedNumber) {
+                    tv.setTextColor(highlightColor);
+                } else {
+                    tv.setTextColor(normalColor);
+                }
+            }
+        }
+    }
+
+
+    private int getColorOrFallback(int resId, int fallbackResId) {
+        try {
+            return getColor(resId);
+        } catch (Exception e) {
+            return getColor(fallbackResId);
+        }
+    }
+
+
 
     private void buildPalette() {
         palette.removeAllViews();
@@ -204,8 +267,8 @@ public class MainActivity extends AppCompatActivity {
         final int bgCellGood = getColor(R.color.bg_cell_good);
         final int bgCellNotGood = getColor(R.color.bg_cell_not_good);
 
-        float shadowOffsetY = dp(-25); //-50 même offset que dans NumberDragShadowBuilder
-        float shadowOffsetX = dp(0);  // tu peux ajouter un offset horizontal si nécessaire
+        float shadowOffsetY = dp(-25); // -50 même offset que dans NumberDragShadowBuilder
+        float shadowOffsetX = dp(0);
 
         // On compense l'offset pour retrouver la vraie position dans la grille
         float x = event.getX() + shadowOffsetX;
@@ -219,14 +282,19 @@ public class MainActivity extends AppCompatActivity {
             case DragEvent.ACTION_DRAG_STARTED:
                 return true;
 
-            case DragEvent.ACTION_DRAG_LOCATION:
+            case DragEvent.ACTION_DRAG_LOCATION: {
                 TextView hoverCell = findCellUnder(x, y);
-                if (hoverCell != null && hoverCell != lastHoverCell && hoverCell.isEnabled()) {
-                    if (lastHoverCell != null) lastHoverCell.setBackgroundColor(bgCell);
-                    hoverCell.setBackgroundColor(Color.LTGRAY);
-                    lastHoverCell = hoverCell;
+                if (hoverCell != null && hoverCell != lastHoverCell) {
+                    CellTag ht = (CellTag) hoverCell.getTag();
+                    boolean editable = (ht != null && !ht.fixed);
+                    if (editable) {
+                        if (lastHoverCell != null) lastHoverCell.setBackgroundColor(bgCell);
+                        hoverCell.setBackgroundColor(Color.LTGRAY);
+                        lastHoverCell = hoverCell;
+                    }
                 }
                 break;
+            }
 
             case DragEvent.ACTION_DRAG_EXITED:
                 if (lastHoverCell != null) {
@@ -235,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
 
-            case DragEvent.ACTION_DROP:
+            case DragEvent.ACTION_DROP: {
                 if (lastHoverCell != null) lastHoverCell.setBackgroundColor(bgCell);
 
                 if (event.getClipData() == null || event.getClipData().getItemCount() == 0) return false;
@@ -245,31 +313,39 @@ public class MainActivity extends AppCompatActivity {
                 int number;
                 try {
                     number = Integer.parseInt(clip.toString());
-                } catch (NumberFormatException e) { return false; }
+                } catch (NumberFormatException e) {
+                    return false;
+                }
 
                 TextView targetCell = findCellUnder(x, y);
-                if (targetCell != null && targetCell.isEnabled()) {
+                if (targetCell != null) {
                     CellTag tag = (CellTag) targetCell.getTag();
-                    int correct = solution[tag.r][tag.c];
+                    boolean editable = (tag != null && !tag.fixed);
+                    if (editable) {
+                        int correct = solution[tag.r][tag.c];
 
-                    if (number == correct) {
-                        targetCell.setText(String.valueOf(number));
-                        targetCell.setEnabled(false);
-                        targetCell.setBackgroundColor(bgCellGood);
-                        score += 10;
-                        statusText.setText("✔ Correct !");
-                        updateScore();
-                        checkWin();
-                    } else {
-                        targetCell.setBackgroundColor(bgCellNotGood);
-                        targetCell.postDelayed(() -> targetCell.setBackgroundColor(bgCell), 350);
-                        score = Math.max(0, score - 5);
-                        Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
-                        updateScore();
+                        if (number == correct) {
+                            targetCell.setText(String.valueOf(number));
+                            tag.fixed = true; // ✅ la case devient "fixée" après validation
+                            targetCell.setBackgroundColor(bgCellGood);
+                            score += 10;
+                            statusText.setText("✔ Correct !");
+                            updateScore();
+                            checkWin();
+
+                            targetCell.postDelayed(() -> targetCell.setBackgroundColor(bgCell), 350);
+                        } else {
+                            targetCell.setBackgroundColor(bgCellNotGood);
+                            targetCell.postDelayed(() -> targetCell.setBackgroundColor(bgCell), 350);
+                            score = Math.max(0, score - 5);
+                            Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
+                            updateScore();
+                        }
                     }
                 }
                 lastHoverCell = null;
                 break;
+            }
 
             case DragEvent.ACTION_DRAG_ENDED:
                 if (lastHoverCell != null) {
@@ -280,6 +356,7 @@ public class MainActivity extends AppCompatActivity {
         }
         return true;
     };
+
 
 
     // Fonction utilitaire pour trouver la cellule sous des coordonnées x, y
@@ -442,7 +519,9 @@ public class MainActivity extends AppCompatActivity {
 
     static class CellTag {
         int r, c;
-        CellTag(int r, int c) { this.r = r; this.c = c; }
+        boolean fixed; // true = cellule pré-remplie (non éditable)
+
+        CellTag(int r, int c, boolean fixed) { this.r = r; this.c = c; this.fixed = fixed; }
     }
 
     static class NumberDragShadowBuilder extends View.DragShadowBuilder {
