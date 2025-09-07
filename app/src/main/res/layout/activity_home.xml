@@ -31,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/bg_button"
+            android:background="@drawable/bg_palette_number"
             android:gravity="center"
             android:padding="8dp"
             android:layout_marginBottom="16dp">
@@ -43,7 +43,7 @@
                 android:text="Facile"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="@color/button_text" />
+                android:textColor="@color/text_palette" />
 
             <TextView
                 android:id="@+id/recordEasy"
@@ -60,7 +60,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/bg_button"
+            android:background="@drawable/bg_palette_number"
             android:gravity="center"
             android:padding="8dp"
             android:layout_marginBottom="16dp">
@@ -72,7 +72,7 @@
                 android:text="Normal"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="@color/button_text" />
+                android:textColor="@color/text_palette" />
 
             <TextView
                 android:id="@+id/recordNormal"
@@ -89,7 +89,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/bg_button"
+            android:background="@drawable/bg_palette_number"
             android:gravity="center"
             android:padding="8dp"
             android:layout_marginBottom="16dp">
@@ -101,7 +101,7 @@
                 android:text="Difficile"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="@color/button_text" />
+                android:textColor="@color/text_palette" />
 
             <TextView
                 android:id="@+id/recordHard"

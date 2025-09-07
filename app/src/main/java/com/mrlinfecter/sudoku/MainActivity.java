@@ -57,7 +57,8 @@ public class MainActivity extends AppCompatActivity {
         recordText = findViewById(R.id.recordText);
 
         Button testWinButton = findViewById(R.id.testWinButton);
-        testWinButton.setOnClickListener(v -> checkWinAnimation());
+        //testWinButton.setOnClickListener(v -> checkWinAnimation());
+        testWinButton.setVisibility(View.INVISIBLE);
 
         String difficulty = getIntent().getStringExtra("difficulty");
         if (difficulty == null) difficulty = "normal";
