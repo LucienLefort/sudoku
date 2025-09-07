@@ -37,6 +37,22 @@ public class HomeActivity extends AppCompatActivity {
         LinearLayout btnNormal = findViewById(R.id.btnNormal);
         LinearLayout btnHard = findViewById(R.id.btnHard);
 
+        // Récupération des records
+        var prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        int recordEasy = prefs.getInt("bestScore_easy", 0);
+        int recordNormal = prefs.getInt("bestScore_normal", 0);
+        int recordHard = prefs.getInt("bestScore_hard", 0);
+
+        // Affichage dans les TextView
+        TextView tvEasy = findViewById(R.id.recordEasy);
+        TextView tvNormal = findViewById(R.id.recordNormal);
+        TextView tvHard = findViewById(R.id.recordHard);
+
+        tvEasy.setText(recordEasy > 0 ? "Record: " + recordEasy : "Record: --");
+        tvNormal.setText(recordNormal > 0 ? "Record: " + recordNormal : "Record: --");
+        tvHard.setText(recordHard > 0 ? "Record: " + recordHard : "Record: --");
+
+
         btnEasy.setOnClickListener(v -> startGame("easy"));
         btnNormal.setOnClickListener(v -> startGame("normal"));
         btnHard.setOnClickListener(v -> startGame("hard"));
