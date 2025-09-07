@@ -439,7 +439,7 @@ public class MainActivity extends AppCompatActivity {
         ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
 
         int bg_end = getColor(R.color.bg_palette);
-        int text_color_end = getColor(R.color.text_end);
+        int text_color_end = getColor(R.color.text_record);
 
         // Message central
         TextView congrats = new TextView(this);
