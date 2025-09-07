@@ -55,19 +55,29 @@ public class MainActivity extends AppCompatActivity {
         Button testWinButton = findViewById(R.id.testWinButton);
         testWinButton.setOnClickListener(v -> checkWinAnimation());
 
+        String difficulty = getIntent().getStringExtra("difficulty");
+        if (difficulty == null) difficulty = "normal";
+
         // === Record ===
-        loadRecord();
+        loadRecord(difficulty);
         updateRecordText();
 
         // === Détection du thème ===
         int nightModeFlags = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
         darkMode = (nightModeFlags == Configuration.UI_MODE_NIGHT_YES);
 
-
         // === Sudoku ===
         SudokuGenerator generator = new SudokuGenerator();
+        int emptyCells;
+        switch (difficulty) {
+            case "easy": emptyCells = 30; break;   // + facile
+            case "hard": emptyCells = 50; break;   // + difficile
+            default: emptyCells = 40; break;       // normal
+        }
+
         solution = generator.generateSolution();
-        puzzle = generator.generatePuzzle(solution, 35);
+        puzzle = generator.generatePuzzle(solution, emptyCells);
+
 
         // Construction de la grille après mesure
         grid.post(() -> {
@@ -404,7 +414,9 @@ public class MainActivity extends AppCompatActivity {
         if (score > bestScore || (score == bestScore && seconds < bestTime)) {
             bestScore = score;
             bestTime = seconds;
-            saveRecord();
+            String difficulty = getIntent().getStringExtra("difficulty");
+            if (difficulty == null) difficulty = "normal";
+            saveRecord(difficulty);
             updateRecordText();
             Toast.makeText(this, "🎖 Nouveau record !", Toast.LENGTH_LONG).show();
         }
@@ -567,17 +579,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void loadRecord() {
+    private void loadRecord(String difficulty) {
         var prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
-        bestScore = prefs.getInt("bestScore", 0);
-        bestTime = prefs.getInt("bestTime", Integer.MAX_VALUE);
+        bestScore = prefs.getInt("bestScore_" + difficulty, 0);
+        bestTime = prefs.getInt("bestTime_" + difficulty, Integer.MAX_VALUE);
     }
 
-    private void saveRecord() {
+    private void saveRecord(String difficulty) {
         var prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
         var editor = prefs.edit();
-        editor.putInt("bestScore", bestScore);
-        editor.putInt("bestTime", bestTime);
+        editor.putInt("bestScore_" + difficulty, bestScore);
+        editor.putInt("bestTime_" + difficulty, bestTime);
         editor.apply();
     }
 
