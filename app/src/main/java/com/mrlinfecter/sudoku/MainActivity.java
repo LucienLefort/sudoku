@@ -1,6 +1,7 @@
 package com.mrlinfecter.sudoku;
 
 import android.content.ClipData;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -19,6 +20,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -433,13 +437,14 @@ public class MainActivity extends AppCompatActivity {
     private void checkWinAnimation() {
         ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
 
-        int bg_end = getColor(R.color.bg_end);
+        int bg_end = getColor(R.color.bg_palette);
         int text_color_end = getColor(R.color.text_end);
 
         // Message central
         TextView congrats = new TextView(this);
-        congrats.setText("🎉 Félicitations ! 🎉");
+        congrats.setText("🎉 Félicitations ! 🎉\nVotre Score: " + score);
         congrats.setBackgroundColor(bg_end);
+        congrats.setBackgroundColor(Color.argb(180, Color.red(bg_end), Color.green(bg_end), Color.blue(bg_end)));
         congrats.setTextSize(32f);
         congrats.setTypeface(Typeface.DEFAULT_BOLD);
         congrats.setTextColor(text_color_end);
@@ -451,65 +456,90 @@ public class MainActivity extends AppCompatActivity {
         congrats.setLayoutParams(msgParams);
         root.addView(congrats);
 
+        // Overlay pour les explosions
+        FrameLayout overlay = new FrameLayout(this);
+        overlay.setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        root.addView(overlay);
+
         int screenW = root.getWidth();
         int screenH = root.getHeight();
 
-        for (int i = 0; i < 60; i++) {
-            TextView tv = new TextView(this);
-            int n = 1 + (int)(Math.random() * 9);
-            tv.setText(String.valueOf(n));
+        AtomicBoolean fireworkRunning = new AtomicBoolean(true);
 
-            // Taille aléatoire
-            float size = 18 + (float)(Math.random() * 14);
-            tv.setTextSize(size);
-            tv.setTypeface(Typeface.DEFAULT_BOLD);
+        // Runnable pour générer des explosions
+        Runnable fireworkRunnable = new Runnable() {
+            Random random = new Random();
 
-            // Couleur aléatoire
-            tv.setTextColor(Color.rgb(
-                    100 + (int)(Math.random()*155),
-                    100 + (int)(Math.random()*155),
-                    100 + (int)(Math.random()*155)
-            ));
+            @Override
+            public void run() {
+                if (!fireworkRunning.get()) return;
 
-            // Position aléatoire en X
-            float startX = (float)(Math.random() * (screenW - 50));
-            tv.setX(startX);
-            tv.setY(-50f - (float)(Math.random() * 200)); // départ au-dessus de l'écran
+                int numExplosions = 3 + random.nextInt(3);
+                for (int e = 0; e < numExplosions; e++) {
+                    float centerX = random.nextInt(screenW);
+                    float centerY = random.nextInt(screenH);
 
-            root.addView(tv);
+                    int numDigits = 20 + random.nextInt(21);
+                    for (int i = 0; i < numDigits; i++) {
+                        TextView tv = new TextView(MainActivity.this);
+                        int n = 1 + random.nextInt(9);
+                        tv.setText(String.valueOf(n));
 
-            // Durée, rotation et décalage final
-            long duration = 2000 + (long)(Math.random() * 1500);
-            float rotation = (float)(Math.random()*720 - 360);
-            float endX = startX + (float)(Math.random()*200 - 100); // décalage horizontal
-            float endY = screenH - 50f;
+                        float size = 16 + random.nextFloat() * 24;
+                        tv.setTextSize(size);
+                        tv.setTypeface(Typeface.DEFAULT_BOLD);
 
-            tv.animate()
-                    .translationX(endX)
-                    .translationY(endY)
-                    .rotation(rotation)
-                    .setDuration(duration)
-                    .withEndAction(() -> {
-                        // petit rebond
+                        int alpha = 100 + random.nextInt(156);
+                        tv.setTextColor(Color.argb(alpha,
+                                Color.red(getColor(R.color.text_primary)),
+                                Color.green(getColor(R.color.text_primary)),
+                                Color.blue(getColor(R.color.text_primary))
+                        ));
+
+                        tv.setX(centerX);
+                        tv.setY(centerY);
+                        overlay.addView(tv);
+
+                        double angle = random.nextDouble() * 2 * Math.PI;
+                        float distance = 300 + random.nextFloat() * 300;
+                        float endX = centerX + (float) (Math.cos(angle) * distance);
+                        float endY = centerY + (float) (Math.sin(angle) * distance);
+                        long duration = 1000 + random.nextInt(1000);
+
                         tv.animate()
-                                .translationY(endY - dp(20))
-                                .setDuration(150)
-                                .withEndAction(() -> tv.animate()
-                                        .translationY(endY)
-                                        .setDuration(150)
-                                        .withEndAction(() -> root.removeView(tv))
-                                        .start()
-                                ).start();
-                    })
-                    .start();
-        }
+                                .x(endX)
+                                .y(endY)
+                                .setDuration(duration)
+                                .withEndAction(() -> overlay.removeView(tv))
+                                .start();
+                    }
+                }
 
-        // Retirer le message central et reset le jeu
-        root.postDelayed(() -> {
+                overlay.postDelayed(this, 500);
+            }
+        };
+
+        overlay.post(fireworkRunnable);
+
+        // Clic pour retourner au menu principal
+        overlay.setOnClickListener(v -> {
+            fireworkRunning.set(false); // stop le feu d'artifice
             root.removeView(congrats);
-            resetGame();
-        }, 4000);
+            root.removeView(overlay);
+
+            Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+        });
     }
+
+
+
+
 
 
     private void resetGame() {
