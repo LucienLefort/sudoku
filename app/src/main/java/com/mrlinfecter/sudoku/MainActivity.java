@@ -332,8 +332,9 @@ public class MainActivity extends AppCompatActivity {
                             statusText.setText("✔ Correct !");
                             updateScore();
                             checkWin();
-
                             targetCell.postDelayed(() -> targetCell.setBackgroundColor(bgCell), 350);
+
+                            highlightNumbers();
                         } else {
                             targetCell.setBackgroundColor(bgCellNotGood);
                             targetCell.postDelayed(() -> targetCell.setBackgroundColor(bgCell), 350);
