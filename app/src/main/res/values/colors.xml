@@ -8,6 +8,7 @@
     <color name="grid_bg">#000000</color>
     <color name="bg_grid">#000000</color>
     <color name="bg_cell_empty">#FFFFFF</color>
+    <color name="bg_cell_empty_selected">#E0E0E0</color>
     <color name="bg_cell_good">#E8F5E9</color>
     <color name="bg_cell_not_good">#FFCDD2</color>
     <color name="bg_palette">#EEEEEE</color>

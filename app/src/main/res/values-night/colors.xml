@@ -8,6 +8,7 @@
     <color name="grid_bg">#FFFFFF</color>
     <color name="bg_grid">#000000</color>
     <color name="bg_cell_empty">#212121</color>
+    <color name="bg_cell_empty_selected">#424242</color>
     <color name="bg_cell_good">#388E3C</color>
     <color name="bg_cell_not_good">#D32F2F</color>
     <color name="bg_palette">#424242</color>

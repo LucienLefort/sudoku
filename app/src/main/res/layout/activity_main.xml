@@ -73,6 +73,16 @@
         android:columnCount="9"
         android:rowCount="9"/>
 
+    <TextView
+        android:id="@+id/hintsText"
+        android:layout_width="match_parent"
+        android:textColor="@color/text_primary"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_height="60dp"
+        android:padding="8dp" />
+
+
     <!-- Barre de sécurité en bas -->
     <View
         android:layout_width="match_parent"
