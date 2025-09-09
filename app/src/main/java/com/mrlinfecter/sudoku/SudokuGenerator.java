@@ -16,18 +16,58 @@ public class SudokuGenerator {
         for (int i = 0; i < SIZE; i++) {
             puzzle[i] = solution[i].clone();
         }
+
         Random rand = new Random();
-        int count = emptyCells;
-        while (count > 0) {
+        int removed = 0;
+
+        while (removed < emptyCells) {
             int r = rand.nextInt(SIZE);
             int c = rand.nextInt(SIZE);
+
             if (puzzle[r][c] != 0) {
+                int backup = puzzle[r][c];
                 puzzle[r][c] = 0;
-                count--;
+
+                // Vérifie si la grille a toujours UNE solution unique
+                if (!hasUniqueSolution(puzzle)) {
+                    puzzle[r][c] = backup; // rollback
+                } else {
+                    removed++;
+                }
             }
         }
         return puzzle;
     }
+
+    private boolean hasUniqueSolution(int[][] grid) {
+        int[][] copy = new int[SIZE][SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            copy[i] = grid[i].clone();
+        }
+        return countSolutions(copy, 0) == 1;
+    }
+
+    private int countSolutions(int[][] grid, int count) {
+        if (count > 1) return count; // pas besoin de chercher plus
+
+        for (int r = 0; r < SIZE; r++) {
+            for (int c = 0; c < SIZE; c++) {
+                if (grid[r][c] == 0) {
+                    for (int num = 1; num <= SIZE; num++) {
+                        if (isSafe(grid, r, c, num)) {
+                            grid[r][c] = num;
+                            count = countSolutions(grid, count);
+                            grid[r][c] = 0;
+                        }
+                    }
+                    return count; // stop après le premier vide
+                }
+            }
+        }
+        return count + 1; // solution trouvée
+    }
+
+
 
     private boolean fillGrid(int[][] grid) {
         for (int row = 0; row < SIZE; row++) {

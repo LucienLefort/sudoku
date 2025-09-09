@@ -416,8 +416,13 @@ public class MainActivity extends AppCompatActivity {
             if (value != expected) return;
         }
 
-        if (score > bestScore || (score == bestScore && seconds < bestTime)) {
-            bestScore = score;
+        int timeBonus = Math.max(0, 1800 - seconds);
+        // Ici tu gagnes + de points si tu finis vite (300 est un "plafond" arbitraire)
+
+        int finalScore = score + timeBonus;
+
+        if (finalScore > bestScore || (finalScore == bestScore && seconds < bestTime)) {
+            bestScore = finalScore;
             bestTime = seconds;
             String difficulty = getIntent().getStringExtra("difficulty");
             if (difficulty == null) difficulty = "normal";
@@ -425,6 +430,8 @@ public class MainActivity extends AppCompatActivity {
             updateRecordText();
             Toast.makeText(this, "🎖 Nouveau record !", Toast.LENGTH_LONG).show();
         }
+
+        score = finalScore;
 
         statusText.setText("🎉 Sudoku terminé !");
         Toast.makeText(this, "Bravo ! Score: " + score, Toast.LENGTH_LONG).show();
