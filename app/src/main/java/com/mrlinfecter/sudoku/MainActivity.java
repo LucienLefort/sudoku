@@ -554,7 +554,6 @@
             score = finalScore;
 
             statusText.setText("🎉 Sudoku terminé !");
-            Toast.makeText(this, "Bravo ! Score: " + score, Toast.LENGTH_LONG).show();
             if (timer != null) timer.cancel();
 
             checkWinAnimation();
