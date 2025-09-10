@@ -83,12 +83,6 @@
         android:padding="8dp" />
 
 
-    <!-- Barre de sécurité en bas -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@color/bg_primary"/>
-
     <!-- Status -->
     <TextView
         android:id="@+id/statusText"

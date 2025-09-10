@@ -1,6 +1,7 @@
     package com.mrlinfecter.sudoku;
 
     import android.annotation.SuppressLint;
+    import android.app.AlertDialog;
     import android.content.ClipData;
     import android.content.Intent;
     import android.content.res.Configuration;
@@ -111,11 +112,19 @@
             });
 
             hintsText = findViewById(R.id.hintsText);
-            hintsText.setText("Activer l'aide ? 💡 (divise le score final par deux)");
+            hintsText.setText("Activer l'aide ? 💡");
 
             hintsText.setOnClickListener(v -> {
-                helpActivate = true;
-                hintsText.setText("Cliquer sur une case vide pour voir les chiffre possibles");
+
+                Popup.show(this, yes -> {
+                    if (yes) {
+                        helpActivate = true;
+                    } else {
+                        helpActivate = false;
+                    }
+                });
+
+
             });
 
         }

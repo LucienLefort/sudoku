@@ -3,8 +3,8 @@
     <application
         android:allowBackup="true"
         android:label="Sudoku"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@mipmap/bg_icon"
+        android:roundIcon="@mipmap/bg_icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 

@@ -1,13 +1,15 @@
 <resources>
     <color name="bg_primary">#121212</color>
-    <color name="bg_secondary">#1E1E1E</color>
+    <color name="bg_secondary">#5F5F5F</color>
     <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#000000</color>
     <color name="text_accent">#FFB74D</color>
     <color name="button_bg">#81C784</color> <!-- vert clair -->
     <color name="button_text">#000000</color>
     <color name="grid_bg">#FFFFFF</color>
     <color name="bg_grid">#000000</color>
     <color name="bg_cell_empty">#212121</color>
+    <color name="bg_cell_empty_transparent">#CC212121</color>
     <color name="bg_cell_empty_selected">#424242</color>
     <color name="bg_cell_good">#388E3C</color>
     <color name="bg_cell_not_good">#D32F2F</color>
