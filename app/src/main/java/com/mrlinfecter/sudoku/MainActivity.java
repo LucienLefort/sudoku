@@ -50,6 +50,8 @@
         private TextView hintsText;
         private int highlightedNumber = -1;
 
+        private boolean helpActivate = false;
+
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
@@ -109,7 +111,12 @@
             });
 
             hintsText = findViewById(R.id.hintsText);
-            hintsText.setText("");
+            hintsText.setText("Activer l'aide ? 💡 (divise le score final par deux)");
+
+            hintsText.setOnClickListener(v -> {
+                helpActivate = true;
+                hintsText.setText("Cliquer sur une case vide pour voir les chiffre possibles");
+            });
 
         }
 
@@ -277,7 +284,10 @@
                     final TextView tvRef = tv;
                     tv.setOnClickListener(v -> {
                         CellTag tag = (CellTag) tvRef.getTag();
-                        showPossibleNumbers(tag, tvRef); // <-- on passe la cellule
+
+                        if (helpActivate)
+                            showPossibleNumbers(tag, tvRef);
+
                         String val = tvRef.getText().toString();
                         if (!val.isEmpty()) {
                             int num = Integer.parseInt(val);
@@ -286,7 +296,7 @@
                                 selectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty));
                                 selectedCell = null;
                             }
-                        }else{
+                        }else if(selectedCell != null){
                             selectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty_selected));
                         }
 
@@ -518,9 +528,9 @@
             }
 
             int timeBonus = Math.max(0, 1800 - seconds);
-            // Ici tu gagnes + de points si tu finis vite (300 est un "plafond" arbitraire)
-
             int finalScore = score + timeBonus;
+
+            if(helpActivate) finalScore = finalScore /2;
 
             if (finalScore > bestScore || (finalScore == bestScore && seconds < bestTime)) {
                 bestScore = finalScore;
