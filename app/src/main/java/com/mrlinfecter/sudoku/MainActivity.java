@@ -53,6 +53,9 @@
 
         private boolean helpActivate = false;
 
+        private int selectedNumber = -1;
+        private TextView selectedNumberView = null;
+
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
@@ -294,10 +297,45 @@
                     tv.setOnClickListener(v -> {
                         CellTag tag = (CellTag) tvRef.getTag();
 
-                        if (helpActivate)
+                        // ✅ Si le mode aide est activé → affiche les chiffres possibles
+                        if (helpActivate) {
                             showPossibleNumbers(tag, tvRef);
+                            return;
+                        }
 
                         String val = tvRef.getText().toString();
+
+                        // ✅ Si un chiffre est sélectionné dans la palette et que la case est vide et non fixe
+                        if (selectedNumber != -1 && val.isEmpty() && !tag.fixed) {
+                            int correct = solution[tag.r][tag.c];
+
+                            if (selectedNumber == correct) {
+                                // ✅ Bonne réponse
+                                tvRef.setText(String.valueOf(selectedNumber));
+                                tvRef.setTextColor(getColor(R.color.text_primary));
+                                tag.fixed = true;
+                                puzzle[tag.r][tag.c] = selectedNumber;
+                                score += 10;
+                                updateScore();
+                                highlightNumbers();
+                                checkWin();
+                            } else {
+                                // ❌ Mauvaise réponse
+                                Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
+                                score = Math.max(0, score - 5);
+                                updateScore();
+                            }
+
+                            // ✅ On désélectionne le chiffre après placement
+                            if (selectedNumberView != null) {
+                                selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
+                                selectedNumberView = null;
+                            }
+                            selectedNumber = -1;
+                            return; // on ne fait pas le reste du clic
+                        }
+
+                        // ✅ Gestion de la sélection/surlignage classique
                         if (!val.isEmpty()) {
                             int num = Integer.parseInt(val);
                             highlightedNumber = (highlightedNumber == num) ? -1 : num; // toggle
@@ -305,11 +343,11 @@
                                 selectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty));
                                 selectedCell = null;
                             }
-                        }else if(selectedCell != null){
+                        } else if (selectedCell != null) {
                             selectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty_selected));
                         }
 
-                        if(oldSelectedCell != null && oldSelectedCell != selectedCell)
+                        if (oldSelectedCell != null && oldSelectedCell != selectedCell)
                             oldSelectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty));
 
                         highlightNumbers();
@@ -382,6 +420,16 @@
                     v.startDragAndDrop(ClipData.newPlainText("number", String.valueOf(number)),
                             new NumberDragShadowBuilder(v), null, 0);
                     return true;
+                });
+
+                // ✅ Ajout du mode "tap-to-place"
+                tv.setOnClickListener(v -> {
+                    if (selectedNumberView != null) {
+                        selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
+                    }
+                    selectedNumber = number;
+                    selectedNumberView = tv;
+                    tv.setBackgroundResource(R.drawable.bg_palette_number_selected);
                 });
 
                 palette.addView(tv);
