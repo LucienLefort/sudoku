@@ -319,20 +319,23 @@
                                 updateScore();
                                 highlightNumbers();
                                 checkWin();
+
+                                // Petit effet visuel vert
+                                tvRef.setBackgroundColor(getColor(R.color.bg_cell_good));
+                                tvRef.postDelayed(() -> tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty)), 200);
+
                             } else {
                                 // ❌ Mauvaise réponse
+                                tvRef.setBackgroundColor(getColor(R.color.bg_cell_not_good));
+                                tvRef.postDelayed(() -> tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty)), 200);
                                 Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
                                 score = Math.max(0, score - 5);
                                 updateScore();
                             }
 
-                            // ✅ On désélectionne le chiffre après placement
-                            if (selectedNumberView != null) {
-                                selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
-                                selectedNumberView = null;
-                            }
-                            selectedNumber = -1;
-                            return; // on ne fait pas le reste du clic
+                            // ⚠️ On NE désélectionne PAS le chiffre palette ici
+                            // Il restera actif tant que l’utilisateur ne clique pas sur un autre chiffre de la palette
+                            return;
                         }
 
                         // ✅ Gestion de la sélection/surlignage classique
