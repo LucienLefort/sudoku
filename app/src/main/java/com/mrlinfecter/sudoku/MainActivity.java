@@ -323,7 +323,7 @@
                                 // effet visuel
                                 tvRef.setBackgroundColor(getColor(R.color.bg_cell_good));
                                 tvRef.postDelayed(() -> tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty)), 200);
-
+                                updatePaletteState();
                             } else {
                                 // Mauvaise réponse
                                 tvRef.setBackgroundColor(getColor(R.color.bg_cell_not_good));
@@ -557,6 +557,7 @@
 
                                 puzzle[tag.r][tag.c] = number;
                                 highlightNumbers();
+                                updatePaletteState();
                             } else {
                                 targetCell.setBackgroundColor(bgCellNotGood);
                                 targetCell.postDelayed(() -> targetCell.setBackgroundColor(bgCell), 350);
@@ -879,6 +880,36 @@
                 tv.setTextColor(textPalette);
             }
         }
+
+        private void updatePaletteState() {
+            for (int n = 1; n <= 9; n++) {
+                int count = 0;
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    TextView tv = (TextView) grid.getChildAt(i);
+                    String s = tv.getText().toString();
+                    if (s.equals(String.valueOf(n))) count++;
+                }
+
+                TextView paletteBtn = (TextView) palette.getChildAt(n - 1);
+
+                if (count >= 9) {
+                    // ✅ Tous les chiffres placés → griser et désactiver
+                    paletteBtn.setEnabled(false);
+                    paletteBtn.setAlpha(0.4f);
+                    paletteBtn.setBackgroundResource(R.drawable.bg_palette_number_disabled);
+                } else {
+                    // 🔁 Encore des cases disponibles → réactiver si besoin
+                    paletteBtn.setEnabled(true);
+                    paletteBtn.setAlpha(1f);
+                    if (paletteBtn == selectedNumberView) {
+                        paletteBtn.setBackgroundResource(R.drawable.bg_palette_number_selected);
+                    } else {
+                        paletteBtn.setBackgroundResource(R.drawable.bg_palette_number);
+                    }
+                }
+            }
+        }
+
 
 
 
