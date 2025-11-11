@@ -297,7 +297,7 @@
                     tv.setOnClickListener(v -> {
                         CellTag tag = (CellTag) tvRef.getTag();
 
-                        // ✅ Si le mode aide est activé → affiche les chiffres possibles
+                        // Si le mode aide est activé → affiche les chiffres possibles et on sort
                         if (helpActivate) {
                             showPossibleNumbers(tag, tvRef);
                             return;
@@ -305,12 +305,12 @@
 
                         String val = tvRef.getText().toString();
 
-                        // ✅ Si un chiffre est sélectionné dans la palette et que la case est vide et non fixe
+                        // Si un chiffre est sélectionné dans la palette et que la case est vide et non fixe
                         if (selectedNumber != -1 && val.isEmpty() && !tag.fixed) {
                             int correct = solution[tag.r][tag.c];
 
                             if (selectedNumber == correct) {
-                                // ✅ Bonne réponse
+                                // Bonne réponse -> on place le chiffre
                                 tvRef.setText(String.valueOf(selectedNumber));
                                 tvRef.setTextColor(getColor(R.color.text_primary));
                                 tag.fixed = true;
@@ -320,12 +320,12 @@
                                 highlightNumbers();
                                 checkWin();
 
-                                // Petit effet visuel vert
+                                // effet visuel
                                 tvRef.setBackgroundColor(getColor(R.color.bg_cell_good));
                                 tvRef.postDelayed(() -> tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty)), 200);
 
                             } else {
-                                // ❌ Mauvaise réponse
+                                // Mauvaise réponse
                                 tvRef.setBackgroundColor(getColor(R.color.bg_cell_not_good));
                                 tvRef.postDelayed(() -> tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty)), 200);
                                 Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
@@ -333,26 +333,38 @@
                                 updateScore();
                             }
 
-                            // ⚠️ On NE désélectionne PAS le chiffre palette ici
-                            // Il restera actif tant que l’utilisateur ne clique pas sur un autre chiffre de la palette
+                            // IMPORTANT : ne pas désélectionner la palette ici (le chiffre reste sélectionné)
                             return;
                         }
 
-                        // ✅ Gestion de la sélection/surlignage classique
-                        if (!val.isEmpty()) {
-                            int num = Integer.parseInt(val);
-                            highlightedNumber = (highlightedNumber == num) ? -1 : num; // toggle
+                        // ===== Selection / Deselection d'une cellule =====
+                        // Si on reclique sur la même case -> on désélectionne
+                        if (selectedCell == tvRef) {
+                            // reset visuel
+                            tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty));
+                            selectedCell = null;
+                            highlightedNumber = -1;
+                        } else {
+                            // nouvelle sélection : restaurer l'ancienne si existante
                             if (selectedCell != null) {
                                 selectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty));
-                                selectedCell = null;
                             }
-                        } else if (selectedCell != null) {
-                            selectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty_selected));
+
+                            // sélectionner la nouvelle
+                            selectedCell = tvRef;
+                            tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty_selected));
+
+                            // si la case contient un chiffre on applique le toggle de surlignage
+                            if (!val.isEmpty()) {
+                                int num = Integer.parseInt(val);
+                                highlightedNumber = (highlightedNumber == num) ? -1 : num;
+                            } else {
+                                // case vide -> aucun surlignage de nombre
+                                highlightedNumber = -1;
+                            }
                         }
 
-                        if (oldSelectedCell != null && oldSelectedCell != selectedCell)
-                            oldSelectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty));
-
+                        // Mettre à jour l'affichage des highlights
                         highlightNumbers();
                     });
 
@@ -425,15 +437,39 @@
                     return true;
                 });
 
-                // ✅ Ajout du mode "tap-to-place"
+                // ✅ Sélection / Désélection + surlignage des mêmes chiffres dans la grille
                 tv.setOnClickListener(v -> {
+                    int clickedNumber = number;
+
+                    // Si on clique sur le même chiffre déjà sélectionné → on désélectionne
+                    if (selectedNumber == clickedNumber) {
+                        if (selectedNumberView != null) {
+                            selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
+                        }
+                        selectedNumber = -1;
+                        selectedNumberView = null;
+
+                        // Supprime le surlignage dans la grille
+                        highlightedNumber = -1;
+                        highlightNumbers();
+                        return;
+                    }
+
+                    // Si un autre chiffre était sélectionné → on réinitialise
                     if (selectedNumberView != null) {
                         selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
                     }
-                    selectedNumber = number;
+
+                    // Nouveau chiffre sélectionné
+                    selectedNumber = clickedNumber;
                     selectedNumberView = tv;
                     tv.setBackgroundResource(R.drawable.bg_palette_number_selected);
+
+                    // Colorer toutes les cases de la grille qui contiennent ce chiffre
+                    highlightedNumber = clickedNumber;
+                    highlightNumbers();
                 });
+
 
                 palette.addView(tv);
             }
