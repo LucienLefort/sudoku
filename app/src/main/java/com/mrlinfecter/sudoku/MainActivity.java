@@ -11,12 +11,14 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
@@ -57,11 +59,16 @@ public class MainActivity extends AppCompatActivity {
 
     private int selectedNumber = -1;
     private TextView selectedNumberView = null;
+    private static final int MIN_APP_HEIGHT_DP = 800;
+    private int screenHeightDp = 0;
+    private int screenWidthtDp = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        View spacerView = findViewById(R.id.spacer_view);
 
         // === Init des vues d'abord ===
         grid = findViewById(R.id.sudokuGrid);
@@ -71,9 +78,18 @@ public class MainActivity extends AppCompatActivity {
         timerText = findViewById(R.id.timerText);
         recordText = findViewById(R.id.recordText);
 
-        Button testWinButton = findViewById(R.id.testWinButton);
-        //testWinButton.setOnClickListener(v -> checkWinAnimation());
-        testWinButton.setVisibility(View.INVISIBLE);
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        float density = displayMetrics.density;
+        int screenHeightPx = displayMetrics.heightPixels;
+        screenHeightDp = (int) (screenHeightPx / density);
+        screenWidthtDp = (int) (displayMetrics.widthPixels / density);
+
+        if (screenHeightDp < MIN_APP_HEIGHT_DP) {
+            spacerView.setVisibility(View.GONE);
+            findViewById(R.id.hintsText).setVisibility(View.GONE);
+        } else {
+            spacerView.setVisibility(View.VISIBLE);
+        }
 
         String difficulty = getIntent().getStringExtra("difficulty");
         if (difficulty == null) difficulty = "normal";
@@ -437,6 +453,13 @@ public class MainActivity extends AppCompatActivity {
             tv.setTextSize(20f);
             tv.setTypeface(Typeface.DEFAULT_BOLD);
             int pad = dp(12);
+            if (screenWidthtDp < 250) {
+                pad = dp(4);
+            } else if (screenWidthtDp < 300) {
+                pad = dp(6);
+            } else if (screenWidthtDp < 400) {
+                pad = dp(8);
+            }
             tv.setPadding(pad, pad, pad, pad);
             tv.setBackgroundResource(R.drawable.bg_palette_number);
 
@@ -488,9 +511,6 @@ public class MainActivity extends AppCompatActivity {
         // s'assurer que le listener de la grille est (ré)attaché
         grid.setOnDragListener(globalGridDragListener);
     }
-
-
-
 
     private TextView lastHoverCell = null;
 
