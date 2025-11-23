@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
     private int selectedNumber = -1;
     private TextView selectedNumberView = null;
-    private static final int MIN_APP_HEIGHT_DP = 800;
+    private static final int MIN_APP_HEIGHT_DP = 600;
     private int screenHeightDp = 0;
     private int screenWidthtDp = 0;
 
