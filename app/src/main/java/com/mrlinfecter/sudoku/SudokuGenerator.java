@@ -20,9 +20,24 @@ public class SudokuGenerator {
         Random rand = new Random();
         int removed = 0;
 
-        while (removed < emptyCells) {
-            int r = rand.nextInt(SIZE);
-            int c = rand.nextInt(SIZE);
+        // NOUVEAU : Créer un ordre de suppression aléatoire pour les 81 cases
+        int[] indices = new int[SIZE * SIZE];
+        for(int i = 0; i < indices.length; i++) indices[i] = i;
+
+        // Mélanger les indices (shuffle)
+        for (int i = 0; i < indices.length; i++) {
+            int j = rand.nextInt(indices.length);
+            int tmp = indices[i];
+            indices[i] = indices[j];
+            indices[j] = tmp;
+        }
+
+        // Parcourir dans l'ordre aléatoire
+        for (int index : indices) {
+            if (removed >= emptyCells) break;
+
+            int r = index / SIZE; // Calcul de la ligne
+            int c = index % SIZE; // Calcul de la colonne
 
             if (puzzle[r][c] != 0) {
                 int backup = puzzle[r][c];
@@ -48,23 +63,25 @@ public class SudokuGenerator {
     }
 
     private int countSolutions(int[][] grid, int count) {
-        if (count > 1) return count; // pas besoin de chercher plus
+        if (count > 1) return count;
+        int r = -1, c = -1;
 
-        for (int r = 0; r < SIZE; r++) {
-            for (int c = 0; c < SIZE; c++) {
-                if (grid[r][c] == 0) {
+        for (r = 0; r < SIZE; r++) {
+            for (c = 0; c < SIZE; c++) {
+                if (grid[r][c] == 0) { // Trouvé une case vide
+
                     for (int num = 1; num <= SIZE; num++) {
                         if (isSafe(grid, r, c, num)) {
                             grid[r][c] = num;
                             count = countSolutions(grid, count);
-                            grid[r][c] = 0;
+                            grid[r][c] = 0; // Backtrack
                         }
                     }
-                    return count; // stop après le premier vide
+                    return count;
                 }
             }
         }
-        return count + 1; // solution trouvée
+        return count + 1; // Solution trouvée
     }
 
 
