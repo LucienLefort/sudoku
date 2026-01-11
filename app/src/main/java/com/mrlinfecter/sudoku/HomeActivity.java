@@ -1,7 +1,10 @@
 package com.mrlinfecter.sudoku;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -14,12 +17,16 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import java.util.Random;
 
@@ -40,6 +47,51 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
     private Handler fragmentHandler = new Handler();
     private final int SHAKE_THRESHOLD = 15;
 
+    private void showThemeChooserDialog() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.layout_theme_picker, null);
+        dialog.setContentView(view);
+
+        ((View) view.getParent()).setBackgroundColor(Color.TRANSPARENT);
+        dialog.getWindow().setDimAmount(0.4f);
+
+        // Clic sur "Système"
+        view.findViewById(R.id.optionSystem).setOnClickListener(v -> {
+            saveThemeAndReload(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+            dialog.dismiss();
+        });
+
+        // Clic sur "Thème Bleu"
+        view.findViewById(R.id.optionCustom).setOnClickListener(v -> {
+            saveThemeAndReload(3);
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void saveThemeAndReload(int mode) {
+        getSharedPreferences("SudokuPrefs", MODE_PRIVATE)
+                .edit()
+                .putInt("theme_mode", mode)
+                .apply();
+        recreate();
+    }
+
+    private void applySavedTheme() {
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        int mode = prefs.getInt("theme_mode", 3);
+
+        if (mode == 3) {
+            // Pour ton thème Bleu, on force le mode "Clair" d'Android
+            // pour que les couleurs ne soient pas inversées par le système
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+        } else {
+            // On suit le réglage système (Sombre, Clair ou Auto)
+            AppCompatDelegate.setDefaultNightMode(mode);
+        }
+    }
+
     private final Runnable fragmentRunnable = new Runnable() {
         @Override
         public void run() {
@@ -55,8 +107,35 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applySavedTheme();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        ImageView btnSettings = findViewById(R.id.btnSettings);
+
+        // On réutilise la fonction de dialogue que nous avons créée avant
+        btnSettings.setOnClickListener(v -> showThemeChooserDialog());
+
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        if (prefs.getInt("theme_mode", 3) == 3) {
+            // On force le fond bleu sur l'écran et la palette
+            findViewById(android.R.id.content).setBackgroundColor(Color.parseColor("#3352a2"));
+            findViewById(R.id.rootFrame).setBackgroundColor(Color.parseColor("#3352a2"));
+
+            ((TextView) findViewById(R.id.homeTitle)).setTextColor(Color.parseColor("#F4D7D3"));
+            ((TextView) findViewById(R.id.textEasy)).setTextColor(Color.parseColor("#F4D7D3"));
+            ((TextView) findViewById(R.id.textNormal)).setTextColor(Color.parseColor("#F4D7D3"));
+            ((TextView) findViewById(R.id.textHard)).setTextColor(Color.parseColor("#F4D7D3"));
+            ((TextView) findViewById(R.id.recordEasy)).setTextColor(Color.parseColor("#ed6851"));
+            ((TextView) findViewById(R.id.recordHard)).setTextColor(Color.parseColor("#ed6851"));
+            ((TextView) findViewById(R.id.recordNormal)).setTextColor(Color.parseColor("#ed6851"));
+
+            findViewById(R.id.btnEasy).setBackgroundResource(R.drawable.bg_button_default_theme);
+            findViewById(R.id.btnNormal).setBackgroundResource(R.drawable.bg_button_default_theme);
+            findViewById(R.id.btnHard).setBackgroundResource(R.drawable.bg_button_default_theme);
+
+
+        }
 
         root = findViewById(R.id.rootFrame);
 
@@ -81,7 +160,6 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
         ViewGroup parentContainer = (ViewGroup) btnHard.getParent();
 
         // Récupération des records
-        var prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
         int recordEasy = prefs.getInt("bestScore_easy", 0);
         int recordNormal = prefs.getInt("bestScore_normal", 0);
         int recordHard = prefs.getInt("bestScore_hard", 0);
@@ -120,7 +198,12 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
             btnExtreme.setLayoutParams(lp);
 
             // Style du Conteneur (Copie des attributs de btnEasy)
-            btnExtreme.setBackgroundResource(R.drawable.bg_palette_number); // Fond
+            if (prefs.getInt("theme_mode", 3) == 3) {
+                btnExtreme.setBackgroundResource(R.drawable.bg_button_default_theme);
+            }else{
+                btnExtreme.setBackgroundResource(R.drawable.bg_palette_number);
+            }
+             // Fond
             btnExtreme.setOrientation(LinearLayout.VERTICAL);
             btnExtreme.setGravity(Gravity.CENTER);
             btnExtreme.setPadding(padding8dp, padding8dp, padding8dp, padding8dp); // Padding "8dp"
@@ -134,7 +217,12 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
             titleExtreme.setTypeface(null, Typeface.BOLD);
 
             // Couleur du titre : Utiliser R.color.text_palette comme dans le XML (Facile/Normal/Difficile)
-            titleExtreme.setTextColor(ContextCompat.getColor(this, R.color.text_palette));
+            if (prefs.getInt("theme_mode", 3) == 3) {
+                titleExtreme.setTextColor(Color.parseColor("#F4D7D3"));
+            }else{
+                titleExtreme.setTextColor(ContextCompat.getColor(this, R.color.text_palette));
+            }
+
             titleExtreme.setGravity(Gravity.CENTER_HORIZONTAL);
 
             // Assurez-vous d'ajouter l'import: import android.util.TypedValue;
@@ -151,7 +239,12 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
             tvExtreme.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
 
             // Couleur du record: Utiliser R.color.text_accent comme dans le XML
-            tvExtreme.setTextColor(ContextCompat.getColor(this, R.color.text_accent));
+            if (prefs.getInt("theme_mode", 3) == 3) {
+                tvExtreme.setTextColor(Color.parseColor("#ed6851"));
+            }else{
+                tvExtreme.setTextColor(ContextCompat.getColor(this, R.color.text_accent));
+            }
+
 
             // Marge Top pour le record: "4dp"
             LinearLayout.LayoutParams recordLp = new LinearLayout.LayoutParams(
@@ -202,7 +295,12 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
         int n = 1 + random.nextInt(9);
         TextView tv = new TextView(this);
         tv.setText(String.valueOf(n));
-        tv.setTextColor(getColor(R.color.text_primary));
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        if (prefs.getInt("theme_mode", 3) == 3) {
+            tv.setTextColor(ContextCompat.getColor(this, R.color.app_default_text));
+        }else{
+            tv.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        }
         tv.setTextSize(18 + random.nextInt(12));
         tv.setAlpha(0.1f + random.nextFloat() * 0.3f);
 
@@ -236,7 +334,12 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
         for (int i = 0; i < numFragments; i++) {
             TextView fragmentTv = new TextView(this);
             fragmentTv.setText(String.valueOf(originalNumber)); // Les fragments gardent le même chiffre
-            fragmentTv.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+            SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+            if (prefs.getInt("theme_mode", 3) == 3) {
+                fragmentTv.setTextColor(ContextCompat.getColor(this, R.color.app_default_text));
+            }else{
+                fragmentTv.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+            }
             fragmentTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10 + random.nextInt(6)); // Petits fragments
             fragmentTv.setAlpha(0.3f + random.nextFloat() * 0.4f);
             fragmentTv.setTypeface(null, Typeface.BOLD);
@@ -337,7 +440,13 @@ public class HomeActivity extends AppCompatActivity implements SensorEventListen
         int mainNumber = 1 + random.nextInt(9);
         TextView tv = new TextView(this);
         tv.setText(String.valueOf(mainNumber));
-        tv.setTextColor(ContextCompat.getColor(this, R.color.text_primary)); // Couleur "extrême"
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        if (prefs.getInt("theme_mode", 3) == 3) {
+            tv.setTextColor(ContextCompat.getColor(this, R.color.app_default_text));
+        }else{
+            tv.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        }
+         // Couleur "extrême"
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18 + random.nextInt(12)); // Taille un peu plus grande
         tv.setTypeface(null, Typeface.BOLD);
         tv.setAlpha(0.1f + random.nextFloat() * 0.3f); // Plus visible qu'en HomeActivity

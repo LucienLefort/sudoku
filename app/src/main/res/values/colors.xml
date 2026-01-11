@@ -18,4 +18,8 @@
     <color name="text_record">#FF9800</color>
     <color name="text_end">#388E3C</color>
     <color name="bg_end">#FF9800</color>
+
+    <color name="app_default_bg">#3352a2</color>
+    <color name="app_default_text">#f4d7d3</color>
+    <color name="app_default_accent">#ed6851</color>
 </resources>

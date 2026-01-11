@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.Sudoku" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    </style>
 
-    <style name="Theme.Sudoku" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Sudoku.AppCustom" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@color/app_default_bg</item>
+        <item name="colorPrimary">@color/app_default_bg</item>
+        <item name="colorOnPrimary">@color/app_default_text</item>
+    </style>
 </resources>

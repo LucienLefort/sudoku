@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -22,11 +23,13 @@ import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
 
 import java.util.Arrays;
@@ -63,21 +66,62 @@ public class MainActivity extends AppCompatActivity {
     private int screenHeightDp = 0;
     private int screenWidthtDp = 0;
 
+    private void applySavedTheme() {
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        int mode = prefs.getInt("theme_mode", 3);
+
+        if (mode == 3) {
+            // Pour ton thème Bleu, on force le mode "Clair" d'Android
+            // pour que les couleurs ne soient pas inversées par le système
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+        } else {
+            // On suit le réglage système (Sombre, Clair ou Auto)
+            AppCompatDelegate.setDefaultNightMode(mode);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // 1. Appliquer le thème AVANT tout
+        applySavedTheme();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        View spacerView = findViewById(R.id.spacer_view);
+        // --- Si on est en mode Bleu, on colorie l'engrenage en Rose ---
+        /*SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        if (prefs.getInt("theme_mode", 3) == 3) {
+            btnSettings.setColorFilter(Color.parseColor("#f4d7d3"));
+        }*/
 
-        // === Init des vues d'abord ===
+        // 2. INITIALISER TOUTES LES VUES (Très important de le faire en premier)
         grid = findViewById(R.id.sudokuGrid);
+        LinearLayout fondDeBase = findViewById(R.id.rootLayout);
         palette = findViewById(R.id.palette);
         statusText = findViewById(R.id.statusText);
         scoreText = findViewById(R.id.scoreText);
         timerText = findViewById(R.id.timerText);
         recordText = findViewById(R.id.recordText);
+        hintsText = findViewById(R.id.hintsText);
+        View spacerView = findViewById(R.id.spacer_view);
 
+        // 3. APPLIQUER LES COULEURS DU THÈME PAR DÉFAUT (Bleu)
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        if (prefs.getInt("theme_mode", 3) == 3) {
+            // On force le fond bleu sur l'écran et la palette
+            findViewById(android.R.id.content).setBackgroundColor(Color.parseColor("#3352a2"));
+            findViewById(R.id.spacer_view).setBackgroundColor(Color.parseColor("#3352a2"));
+            palette.setBackgroundColor(Color.parseColor("#3352a2"));
+            fondDeBase.setBackgroundColor(Color.parseColor("#3352a2"));
+            // On met le texte en rose pâle pour qu'il soit lisible sur le bleu
+            statusText.setTextColor(Color.parseColor("#f4d7d3"));
+            scoreText.setTextColor(Color.parseColor("#f4d7d3"));
+            timerText.setTextColor(Color.parseColor("#f4d7d3"));
+            recordText.setTextColor(Color.parseColor("#f4d7d3"));
+            hintsText.setTextColor(Color.parseColor("#f4d7d3"));
+
+        }
+
+        // 5. CALCULS DE TAILLE D'ÉCRAN
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         float density = displayMetrics.density;
         int screenHeightPx = displayMetrics.heightPixels;
@@ -86,37 +130,29 @@ public class MainActivity extends AppCompatActivity {
 
         if (screenHeightDp < MIN_APP_HEIGHT_DP) {
             spacerView.setVisibility(View.GONE);
-            findViewById(R.id.hintsText).setVisibility(View.GONE);
+            hintsText.setVisibility(View.GONE);
         } else {
             spacerView.setVisibility(View.VISIBLE);
         }
 
+        // 6. DIFFICULTÉ ET RECORDS
         String difficulty = getIntent().getStringExtra("difficulty");
         if (difficulty == null) difficulty = "normal";
-
-        // === Record ===
         loadRecord(difficulty);
         updateRecordText();
 
-        // === Détection du thème ===
-        int nightModeFlags = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        darkMode = (nightModeFlags == Configuration.UI_MODE_NIGHT_YES);
-
+        // 7. GÉNÉRATION DU JEU
         String finalDifficulty = difficulty;
         grid.post(() -> {
-            // Le post() garantit que la taille de la grille (width/height) est calculée
             int width = grid.getWidth();
             int height = grid.getHeight();
             int size = Math.min(width, height);
 
-            // Ajuster la taille du GridLayout pour qu'il soit carré
             ViewGroup.LayoutParams params = grid.getLayoutParams();
             params.width = size;
             params.height = size;
             grid.setLayoutParams(params);
 
-
-            // === 2. Lancement de la génération du Sudoku en arrière-plan ===
             new Thread(() -> {
                 SudokuGenerator generator = new SudokuGenerator();
                 int emptyCells;
@@ -133,28 +169,19 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     buildGrid();
                     buildPalette();
-                    applyTheme();
                     startTimer();
+                    applyTheme(); // ici n'est plus forcément nécessaire si buildGrid utilise getAdaptiveColor
                 });
             }).start();
         });
 
-        hintsText = findViewById(R.id.hintsText);
+        // 8. LOGIQUE DE L'AIDE
         hintsText.setText("Activer l'aide ? 💡");
-
         hintsText.setOnClickListener(v -> {
-
             Popup.show(this, yes -> {
-                if (yes) {
-                    helpActivate = true;
-                } else {
-                    helpActivate = false;
-                }
+                helpActivate = yes;
             });
-
-
         });
-
     }
 
     private void showPossibleNumbers(CellTag tag, TextView cell) {
@@ -269,6 +296,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void buildGrid() {
         grid.removeAllViews();
+
+        // --- GESTION DES COULEURS DES BORDURES ---
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        int currentTheme = prefs.getInt("theme_mode", 3);
+
+        // Si thème 3 (Bleu), bordures Roses, sinon bordures Noires (standard)
+        //int borderColor = (currentTheme == 3) ? Color.parseColor("#244393") : Color.BLACK;
+        int borderColor = (currentTheme == 3) ? Color.parseColor("#4261B1") : Color.BLACK;
+        grid.setBackgroundColor(borderColor);
+
+        // Couleur pour les cases vides (transparent pour voir le fond ou couleur spécifique)
+        //int emptyCellBg = (currentTheme == 3) ? Color.parseColor("#4261B1") : getColor(R.color.bg_cell_empty);
+        int emptyCellBg = (currentTheme == 3) ? Color.parseColor("#244393") : getColor(R.color.bg_cell_empty);
+        // ------------------------------------------
+
         int size = Math.min(grid.getWidth(), grid.getHeight());
 
         int thin = dp(1);
@@ -300,6 +342,9 @@ public class MainActivity extends AppCompatActivity {
                 tv.setTypeface(Typeface.DEFAULT_BOLD);
                 tv.setGravity(Gravity.CENTER);
 
+                // On applique le fond de la cellule (le fond de la grille fait la bordure)
+                tv.setBackgroundColor(emptyCellBg);
+
                 int value = puzzle[r][c];
                 boolean isFixed = value != 0;
 
@@ -312,19 +357,14 @@ public class MainActivity extends AppCompatActivity {
                     tv.setTextColor(Color.DKGRAY);
                 }
 
-                // IMPORTANT : ne pas désactiver la vue -> on veut recevoir les clics
                 tv.setEnabled(true);
                 tv.setClickable(true);
-
-                // tag contient maintenant l'info si la case est fixe
                 tv.setTag(new CellTag(r, c, isFixed));
 
-                // click : bascule du surlignage
                 final TextView tvRef = tv;
                 tv.setOnClickListener(v -> {
                     CellTag tag = (CellTag) tvRef.getTag();
 
-                    // Si le mode aide est activé → affiche les chiffres possibles et on sort
                     if (helpActivate) {
                         showPossibleNumbers(tag, tvRef);
                         return;
@@ -332,14 +372,13 @@ public class MainActivity extends AppCompatActivity {
 
                     String val = tvRef.getText().toString();
 
-                    // Si un chiffre est sélectionné dans la palette et que la case est vide et non fixe
                     if (selectedNumber != -1 && val.isEmpty() && !tag.fixed) {
                         int correct = solution[tag.r][tag.c];
 
                         if (selectedNumber == correct) {
-                            // Bonne réponse -> on place le chiffre
                             tvRef.setText(String.valueOf(selectedNumber));
-                            tvRef.setTextColor(getColor(R.color.text_primary));
+                            // Met le chiffre en couleur adaptative
+                            tvRef.setTextColor(getAdaptiveColor(false));
                             tag.fixed = true;
                             puzzle[tag.r][tag.c] = selectedNumber;
                             score += 10;
@@ -347,78 +386,67 @@ public class MainActivity extends AppCompatActivity {
                             highlightNumbers();
                             checkWin();
 
-                            // effet visuel
                             tvRef.setBackgroundColor(getColor(R.color.bg_cell_good));
-                            tvRef.postDelayed(() -> tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty)), 200);
+                            tvRef.postDelayed(() -> tvRef.setBackgroundColor(emptyCellBg), 200);
                             updatePaletteState();
                         } else {
-                            // Mauvaise réponse
                             tvRef.setBackgroundColor(getColor(R.color.bg_cell_not_good));
-                            tvRef.postDelayed(() -> tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty)), 200);
+                            tvRef.postDelayed(() -> tvRef.setBackgroundColor(emptyCellBg), 200);
                             Toast.makeText(this, "❌ Mauvais chiffre", Toast.LENGTH_SHORT).show();
                             score = Math.max(0, score - 5);
                             updateScore();
                         }
-
-                        // IMPORTANT : ne pas désélectionner la palette ici (le chiffre reste sélectionné)
                         return;
                     }
 
-                    // ===== Selection / Deselection d'une cellule =====
-                    // Si on reclique sur la même case -> on désélectionne
                     if (selectedCell == tvRef) {
-                        // reset visuel
-                        tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty));
+                        tvRef.setBackgroundColor(emptyCellBg);
                         selectedCell = null;
                         highlightedNumber = -1;
                     } else {
-                        // nouvelle sélection : restaurer l'ancienne si existante
                         if (selectedCell != null) {
-                            selectedCell.setBackgroundColor(getColor(R.color.bg_cell_empty));
+                            selectedCell.setBackgroundColor(emptyCellBg);
                         }
-
-                        // sélectionner la nouvelle
                         selectedCell = tvRef;
-                        tvRef.setBackgroundColor(getColor(R.color.bg_cell_empty_selected));
+                        // Couleur de sélection : on peut utiliser Corail avec un peu de transparence
+                        tvRef.setBackgroundColor(Color.parseColor("#4DEB6851"));
 
-                        // si la case contient un chiffre on applique le toggle de surlignage
                         if (!val.isEmpty()) {
                             int num = Integer.parseInt(val);
                             highlightedNumber = (highlightedNumber == num) ? -1 : num;
                         } else {
-                            // case vide -> aucun surlignage de nombre
                             highlightedNumber = -1;
                         }
                     }
-
-                    // Mettre à jour l'affichage des highlights
                     highlightNumbers();
                 });
 
                 grid.addView(tv);
             }
         }
-
-        // reset du surlignage (au cas où)
         highlightNumbers();
     }
 
 
     private void highlightNumbers() {
-        int highlightColor = getColor(R.color.text_record);
+        // On récupère la couleur d'accent (Corail en mode App, ou ta couleur record d'habitude)
+        int highlightColor = getAdaptiveColor(true);
+        int normalColor = getAdaptiveColor(false);
 
         for (int i = 0; i < grid.getChildCount(); i++) {
             TextView tv = (TextView) grid.getChildAt(i);
             CellTag tag = (CellTag) tv.getTag();
             String s = tv.getText().toString();
+
             if (!s.isEmpty() && tag != null) {
                 int num = Integer.parseInt(s);
                 if (highlightedNumber != -1 && num == highlightedNumber) {
+                    // Applique le Corail (ou couleur accent)
                     tv.setTextColor(highlightColor);
                 } else {
-                    // Remet la couleur normale selon si la cellule est fixe ou non
+                    // Remet la couleur normale (Rose pâle ou Primary)
                     if (tag.fixed) {
-                        tv.setTextColor(getColorOrFallback(R.color.text_primary, android.R.color.black));
+                        tv.setTextColor(normalColor);
                     } else {
                         tv.setTextColor(Color.DKGRAY);
                     }
@@ -461,7 +489,12 @@ public class MainActivity extends AppCompatActivity {
                 pad = dp(8);
             }
             tv.setPadding(pad, pad, pad, pad);
-            tv.setBackgroundResource(R.drawable.bg_palette_number);
+            SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+            if (prefs.getInt("theme_mode", 3) == 3) {
+                tv.setBackgroundResource(R.drawable.bg_palette_number_default_theme);
+            }else{
+                tv.setBackgroundResource(R.drawable.bg_palette_number);
+            }
 
             final int number = n;
             tv.setLongClickable(true);
@@ -478,7 +511,11 @@ public class MainActivity extends AppCompatActivity {
                 // Si on clique sur le même chiffre déjà sélectionné → on désélectionne
                 if (selectedNumber == clickedNumber) {
                     if (selectedNumberView != null) {
-                        selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
+                        if (prefs.getInt("theme_mode", 3) == 3) {
+                            selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number_default_theme);
+                        }else{
+                            selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
+                        }
                     }
                     selectedNumber = -1;
                     selectedNumberView = null;
@@ -491,13 +528,24 @@ public class MainActivity extends AppCompatActivity {
 
                 // Si un autre chiffre était sélectionné → on réinitialise
                 if (selectedNumberView != null) {
-                    selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
+                    if (prefs.getInt("theme_mode", 3) == 3) {
+                        selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number_default_theme);
+                    }else{
+                        selectedNumberView.setBackgroundResource(R.drawable.bg_palette_number);
+                    }
+
                 }
 
                 // Nouveau chiffre sélectionné
                 selectedNumber = clickedNumber;
                 selectedNumberView = tv;
                 tv.setBackgroundResource(R.drawable.bg_palette_number_selected);
+                if (prefs.getInt("theme_mode", 3) == 3) {
+                    tv.setBackgroundResource(R.drawable.bg_palette_number_default_theme_selected);
+                }else{
+                    tv.setBackgroundResource(R.drawable.bg_palette_number_selected);
+                }
+
 
                 // Colorer toutes les cases de la grille qui contiennent ce chiffre
                 highlightedNumber = clickedNumber;
@@ -685,8 +733,15 @@ public class MainActivity extends AppCompatActivity {
     private void checkWinAnimation() {
         ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
 
+
+
         int bg_end = getColor(R.color.bg_palette);
         int text_color_end = getColor(R.color.text_record);
+
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        if (prefs.getInt("theme_mode", 3) == 3) {
+            bg_end = Color.parseColor("#4261B1");
+        }
 
         // Message central
         TextView congrats = new TextView(this);
@@ -741,11 +796,20 @@ public class MainActivity extends AppCompatActivity {
                         tv.setTypeface(Typeface.DEFAULT_BOLD);
 
                         int alpha = 100 + random.nextInt(156);
-                        tv.setTextColor(Color.argb(alpha,
-                                Color.red(getColor(R.color.text_primary)),
-                                Color.green(getColor(R.color.text_primary)),
-                                Color.blue(getColor(R.color.text_primary))
-                        ));
+                        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+                        if (prefs.getInt("theme_mode", 3) == 3) {
+                            tv.setTextColor(Color.argb(alpha,
+                                    Color.red(Color.parseColor("#244393")),
+                                    Color.green(Color.parseColor("#244393")),
+                                    Color.blue(Color.parseColor("#244393")))
+                            );
+                        }else{
+                            tv.setTextColor(Color.argb(alpha,
+                                    Color.red(getColor(R.color.text_primary)),
+                                    Color.green(getColor(R.color.text_primary)),
+                                    Color.blue(getColor(R.color.text_primary))
+                            ));
+                        }
 
                         tv.setX(centerX);
                         tv.setY(centerY);
@@ -875,6 +939,20 @@ public class MainActivity extends AppCompatActivity {
             recordText.setText(String.format("Record: %d pts en %02d:%02d", bestScore, mins, secs));
         }
     }
+
+    private int getAdaptiveColor(boolean isAccent) {
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        int theme = prefs.getInt("theme_mode", 3); // 3 = Thème App par défaut
+
+        if (theme == 3) {
+            // COULEURS DU THÈME PAR DÉFAUT (Ton design)
+            return isAccent ? Color.parseColor("#ed6851") : Color.parseColor("#f4d7d3");
+        } else {
+            // COULEURS DU SYSTÈME (Android standard)
+            return isAccent ? ContextCompat.getColor(this, R.color.text_record)
+                    : ContextCompat.getColor(this, R.color.text_primary);
+        }
+    }
     private void applyTheme() {
         int bgPrimary = getColor(R.color.bg_primary);
         int bgGrid = getColor(R.color.bg_grid);
@@ -883,6 +961,22 @@ public class MainActivity extends AppCompatActivity {
         int textPrimary = getColor(R.color.text_primary);
         int textPalette = getColor(R.color.text_palette);
         int textRecord = getColor(R.color.text_record);
+
+
+        // 3. APPLIQUER LES COULEURS DU THÈME PAR DÉFAUT (Bleu)
+        SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
+        if (prefs.getInt("theme_mode", 3) == 3) {
+            bgPrimary = Color.parseColor("#244393");
+            bgGrid = Color.parseColor("#4261B1");
+            //bgGrid = Color.parseColor("#244393");
+            bgCell = Color.parseColor("#244393");
+            //bgCell = Color.parseColor("#4261B1");
+            bgPalette = Color.parseColor("#4261B1");
+            textPrimary = Color.parseColor("#f4d7d3");
+            textPalette = Color.parseColor("#f4d7d3");
+            textRecord = Color.parseColor("#f4d7d3");
+
+        }
 
         // Fond général
         grid.setBackgroundColor(bgGrid);
@@ -904,7 +998,11 @@ public class MainActivity extends AppCompatActivity {
         // Palette
         for (int i = 0; i < palette.getChildCount(); i++) {
             TextView tv = (TextView) palette.getChildAt(i);
-            tv.setBackgroundResource(R.drawable.bg_palette_number);
+            if (prefs.getInt("theme_mode", 3) == 3) {
+                tv.setBackgroundResource(R.drawable.bg_palette_number_default_theme);
+            }else{
+                tv.setBackgroundResource(R.drawable.bg_palette_number);
+            }
             tv.setTextColor(textPalette);
         }
     }
@@ -929,10 +1027,19 @@ public class MainActivity extends AppCompatActivity {
                 // 🔁 Encore des cases disponibles → réactiver si besoin
                 paletteBtn.setEnabled(true);
                 paletteBtn.setAlpha(1f);
+                SharedPreferences prefs = getSharedPreferences("SudokuPrefs", MODE_PRIVATE);
                 if (paletteBtn == selectedNumberView) {
-                    paletteBtn.setBackgroundResource(R.drawable.bg_palette_number_selected);
+                    if (prefs.getInt("theme_mode", 3) == 3) {
+                        paletteBtn.setBackgroundResource(R.drawable.bg_palette_number_default_theme_selected);
+                    }else{
+                        paletteBtn.setBackgroundResource(R.drawable.bg_palette_number_selected);
+                    }
                 } else {
-                    paletteBtn.setBackgroundResource(R.drawable.bg_palette_number);
+                    if (prefs.getInt("theme_mode", 3) == 3) {
+                        paletteBtn.setBackgroundResource(R.drawable.bg_palette_number_default_theme);
+                    }else{
+                        paletteBtn.setBackgroundResource(R.drawable.bg_palette_number);
+                    }
                 }
             }
         }
